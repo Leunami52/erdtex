@@ -43,7 +43,7 @@ def arrange(u: Docks, mode: str):
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="erdtex-arrange-"))
     for name in ("railway.erd", "imkerei.erd", "ensemble.gsmd"):
-        shutil.copy(REPO / "desktop_app_rust" / "test_diagrams" / name, tmp / name)
+        shutil.copy(REPO / "app" / "test_diagrams" / name, tmp / name)
     d = Driver(APP, {"ERDTEX_CONFIG_DIR": str(tmp / "cfg"), "ERDTEX_PRIVATE_CLIPBOARD": "1"})
     u = Docks(d)
     t0 = time.time()
@@ -86,7 +86,7 @@ def main() -> int:
         check(s.get("arrange/mode") == "tidy" and s.get("arrange/spacing") == "0.5", f"the choices are kept ({s.get('arrange/mode')}, {s.get('arrange/spacing')})")
         # the selection only: nothing outside it changes in the file
         copy = tmp / "selection.erd"
-        shutil.copy(REPO / "desktop_app_rust" / "test_diagrams" / "railway.erd", copy)
+        shutil.copy(REPO / "app" / "test_diagrams" / "railway.erd", copy)
         d.call("window.__erdtex.open(args[0])", str(copy))
         d.frames(3)
         original = d.call("window.__erdtex.text()")
@@ -121,7 +121,7 @@ def main() -> int:
         d.frames(3)
         check(d.call("window.__erdtex.text()") == original, "Undo gives back the file")
         # every test diagram (the dialog's choices are kept: tidy, Enter arranges)
-        files = sorted((REPO / "desktop_app_rust" / "test_diagrams").glob("*.[eg]*d"))
+        files = sorted((REPO / "app" / "test_diagrams").glob("*.[eg]*d"))
         files = [f for f in files if f.suffix in (".erd", ".gsmd")]
         bad, arranged = [], 0
         for i, f in enumerate(files):

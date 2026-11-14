@@ -41,7 +41,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: desktop_app_rust
+          workspaces: app
 
       - uses: taiki-e/install-action@v2
         with:
@@ -56,10 +56,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop_app_rust/package-lock.json
+          cache-dependency-path: app/package-lock.json
 
       - name: Page dependencies and the browsers
-        working-directory: desktop_app_rust
+        working-directory: app
         run: |
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium firefox webkit
@@ -78,6 +78,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: desktop_app_rust/test-results/
+          path: app/test-results/
           if-no-files-found: ignore
           retention-days: 7

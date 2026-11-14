@@ -8,8 +8,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 cp -r "$root/latex_packages" "$tmp/"
-mkdir -p "$tmp/desktop_app_rust"                     # the manuals show the program's sample diagrams
-cp -r "$root/desktop_app_rust/samples" "$tmp/desktop_app_rust/"
+mkdir -p "$tmp/app"                     # the manuals show the program's sample diagrams
+cp -r "$root/app/samples" "$tmp/app/"
 pk="$tmp/latex_packages"
 status=0
 build() {  # dir file runs

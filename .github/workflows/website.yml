@@ -28,7 +28,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: desktop_app_rust
+          workspaces: app
 
       - uses: taiki-e/install-action@v2
         with:
@@ -38,17 +38,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop_app_rust/package-lock.json
+          cache-dependency-path: app/package-lock.json
 
       - name: Build the website
-        working-directory: desktop_app_rust
+        working-directory: app
         run: |
           npm ci --no-audit --no-fund
           npm run build:web
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: desktop_app_rust/dist-web
+          path: app/dist-web
 
   deploy:
     needs: build

@@ -265,7 +265,7 @@ fn university_and_airline() {
         &none(),
     );
     assert_eq!(rels.len(), 8);
-    let s = schema(&repo("desktop_app_rust/test_diagrams/railway.erd"), RelNaming::Entities, None, &none());
+    let s = schema(&repo("app/test_diagrams/railway.erd"), RelNaming::Entities, None, &none());
     let text = to_text(&s, Marks::Underscore, false, "");
     let rels: HashMap<&str, &str> =
         text.split("\n\n").nth(1).unwrap().lines().map(|l| (l.split(" : ").next().unwrap(), l)).collect();
@@ -554,7 +554,7 @@ fn isas(doc: &Document) -> Vec<(String, String)> {
 #[test]
 fn gsm_to_er() {
     // a GSM diagram -> the ER diagram it should give
-    let text = repo("desktop_app_rust/test_diagrams/ensemble.gsmd");
+    let text = repo("app/test_diagrams/ensemble.gsmd");
     let gsm = Document::parse(&text, Kind::Gsm).unwrap();
     let r = convert(&gsm, &ConversionSettings::default(), None).unwrap();
     let (_, rels, trees, links) = parts(&r.doc);
@@ -596,7 +596,7 @@ fn gsm_to_er() {
     );
     assert!(!r.report.iter().any(|m| m.contains("became a derived attribute")), "{:?}", r.report);
     // year(s) of employment belongs to the relationship assists
-    let company = Document::parse(&repo("desktop_app_rust/test_diagrams/company.gsmd"), Kind::Gsm).unwrap();
+    let company = Document::parse(&repo("app/test_diagrams/company.gsmd"), Kind::Gsm).unwrap();
     let (_, _, trees, _) = parts(&convert(&company, &ConversionSettings::default(), None).unwrap().doc);
     assert_eq!(trees["assists"], ["year(s) of employment"]);
     // an aggregation of object types nothing refers to is a relationship

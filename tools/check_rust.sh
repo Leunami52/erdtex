@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Every check of the Rust version (desktop_app_rust/).  A milestone is only done when this passes.
+# Every check of the Rust version (app/).  A milestone is only done when this passes.
 set -euo pipefail
-cd "$(dirname "$0")/../desktop_app_rust"
+cd "$(dirname "$0")/../app"
 # shellcheck disable=SC1091
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 step() { printf '\n== %s\n' "$1"; }

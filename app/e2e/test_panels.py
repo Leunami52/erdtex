@@ -351,7 +351,7 @@ def add_list_key(u: Panels):
 def all_attributes(u: Panels):
     """An entity's list of all its attributes: its own, then the inherited ones with their trace; a double
     click opens one where it is defined."""
-    text = (REPO / "desktop_app_rust" / "test_diagrams" / "railway.erd").read_text()
+    text = (REPO / "app" / "test_diagrams" / "railway.erd").read_text()
     u.load(text)
     d = u.d
     d.call("window.__erdtex.select(['engineer'])")

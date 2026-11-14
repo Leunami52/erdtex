@@ -15,7 +15,7 @@ source "$HOME/.cargo/env"
 cargo build -q -p diagram-core --features json --example arrange_check
 H=target/debug/examples/arrange_check
 printf "%-34s %-26s %s\n" diagram chosen "overlaps / close / through / crossings / length / size: before -> after"
-for f in "$REPO"/desktop_app_rust/test_diagrams/*.erd "$REPO"/desktop_app_rust/test_diagrams/*.gsmd; do
+for f in "$REPO"/app/test_diagrams/*.erd "$REPO"/app/test_diagrams/*.gsmd; do
   [ -f "$f" ] || continue
   name=$(basename "$(dirname "$f")")_$(basename "$f"); name=${name/test_diagrams_/}
   ext=${f##*.}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The generated SQL runs in real databases: every test diagram's scripts, as the snapshot tests keep
-them (desktop_app_rust/crates/core/tests/snapshots/), executed twice each (so that their DROP statements
+them (app/crates/core/tests/snapshots/), executed twice each (so that their DROP statements
 are tried too):
 
   SQLite      in memory, with Python's own sqlite3
@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-SNAPSHOTS = Path(__file__).resolve().parent.parent / "desktop_app_rust/crates/core/tests/snapshots"
+SNAPSHOTS = Path(__file__).resolve().parent.parent / "app/crates/core/tests/snapshots"
 PORT = "54331"
 
 

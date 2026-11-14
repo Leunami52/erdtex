@@ -270,7 +270,7 @@ def relational(u: User):
 
 def convert(u: User, tmp: Path):
     gsm = tmp / "aspects.gsmd"
-    shutil.copy(REPO / "desktop_app_rust/test_diagrams/ensemble.gsmd", gsm)
+    shutil.copy(REPO / "app/test_diagrams/ensemble.gsmd", gsm)
     before = gsm.read_bytes()
     u.d.call("window.__erdtex.open(args[0])", str(gsm))
     u.d.frames(3)

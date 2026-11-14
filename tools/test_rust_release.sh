@@ -7,7 +7,7 @@
 #   tools/test_rust_release.sh [deb|rpm|windows]     (all if nothing is said)
 set -uo pipefail
 cd "$(dirname "$0")/.."
-VERSION=$(python3 -c 'import json; print(json.load(open("desktop_app_rust/src-tauri/tauri.conf.json"))["version"])')
+VERSION=$(python3 -c 'import json; print(json.load(open("app/src-tauri/tauri.conf.json"))["version"])')
 what=${1:-all}
 case $what in all|deb|rpm|windows) ;; *) echo "usage: $0 [deb|rpm|windows]" >&2; exit 2 ;; esac
 failed=0

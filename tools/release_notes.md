@@ -14,4 +14,4 @@
 
 The installer isn't code-signed, so Windows SmartScreen may warn at the first start: *More info* → *Run
 anyway*. The LaTeX preview and the export of the LaTeX result need `pdflatex` (TeX Live, or MiKTeX on
-Windows). The user guide: [`desktop_app_rust/README.md`](https://github.com/Leunami52/erdtex/blob/v{{VERSION}}/desktop_app_rust/README.md).
+Windows). The user guide: [`app/README.md`](https://github.com/Leunami52/erdtex/blob/v{{VERSION}}/app/README.md).

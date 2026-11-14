@@ -1000,8 +1000,8 @@ mod tests {
     use crate::editor::Editor;
     use crate::session::Session;
 
-    const MANYDOGS: &str = include_str!("../../../../desktop_app_rust/test_diagrams/imkerei.erd");
-    const GLOBAL: &str = include_str!("../../../../desktop_app_rust/test_diagrams/ensemble.gsmd");
+    const MANYDOGS: &str = include_str!("../../../../app/test_diagrams/imkerei.erd");
+    const GLOBAL: &str = include_str!("../../../../app/test_diagrams/ensemble.gsmd");
 
     fn doc(text: &str, kind: Kind) -> Document {
         Document::parse(text, kind).unwrap()

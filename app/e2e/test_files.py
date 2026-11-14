@@ -44,7 +44,7 @@ def preview(u: User, tmp: Path):
     if not TEX:
         print("(no pdflatex: the preview is skipped)")
         return
-    shutil.copy(REPO / "desktop_app_rust/test_diagrams/railway.erd", tmp / "railway.erd")
+    shutil.copy(REPO / "app/test_diagrams/railway.erd", tmp / "railway.erd")
     check(not u.shown("[data-testid=preview]"), "the preview starts hidden, as in the Python app")
     u.keys("F6")
     st0 = u.d.call("window.__erdtex.preview()")
@@ -98,7 +98,7 @@ def magic(path: Path, fmt: str) -> bool:
 
 
 def export(u: User, tmp: Path):
-    shutil.copy(REPO / "desktop_app_rust/test_diagrams/railway.erd", tmp / "export.erd")
+    shutil.copy(REPO / "app/test_diagrams/railway.erd", tmp / "export.erd")
     u.d.call("window.__erdtex.open(args[0])", str(tmp / "export.erd"))
     u.d.frames(3)
     sources = ["editor"] + (["latex"] if TEX else [])

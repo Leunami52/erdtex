@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # what goes public: these folders and files (prefixes of tracked paths) ...
 INCLUDE = [
     "LICENSE",
-    "desktop_app_rust/",
+    "app/",
     "latex_packages/",
     "tools/build_rust_release.sh",
     "tools/check_rust.sh",
@@ -43,16 +43,16 @@ INCLUDE = [
 ]
 # ... except these (prefixes)
 EXCLUDE = [
-    "desktop_app_rust/oracle/",           # the comparison with the Python app, which stays private
-    "desktop_app_rust/crates/oracle/",
-    "desktop_app_rust/e2e/python_canvas.py",
+    "app/oracle/",           # the comparison with the Python app, which stays private
+    "app/crates/oracle/",
+    "app/e2e/python_canvas.py",
     "latex_packages/tests/v1/",           # converted course diagrams
     "latex_packages/tests/v1_files.tex",
 ]
 # files of the public tree that are changed on the way: path -> [(old, new)]
 PATCHES = {
     # the workspace without the comparison's crate
-    "desktop_app_rust/Cargo.toml": [('"crates/oracle", ', "")],
+    "app/Cargo.toml": [('"crates/oracle", ', "")],
 }
 
 # words that must not appear (case-insensitive, whole words)
@@ -83,7 +83,7 @@ ALLOWED = [
 # denied with their case: exercise sheets' names (UE03), not WebDriver's key codes (\ue009)
 DENIED_CASED = [r"UE\d\d\w*"]
 # files only checked for secrets and paths (generated, third-party texts)
-TEXT_ONLY = ["desktop_app_rust/licenses/", "latex_packages/LICENSE", "desktop_app_rust/fonts/GUST-FONT-LICENSE.txt"]
+TEXT_ONLY = ["app/licenses/", "latex_packages/LICENSE", "app/fonts/GUST-FONT-LICENSE.txt"]
 # the program's old name (up to 3.5), in any spelling, in names and contents (also of binary files), and
 # its abbreviation in names of the code (DS_CONFIG_DIR, window.__ds): nothing public says it (2026-11-14)
 OLD_NAME = re.compile(rb"diagram[\s_-]?studio", re.IGNORECASE)

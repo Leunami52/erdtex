@@ -218,8 +218,8 @@ proptest! {
         use diagram_core::editor::{Editor, Mods, edge_tools, node_tools, special_tools};
         use diagram_core::geometry::CM;
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-        let files = ["desktop_app_rust/test_diagrams/railway.erd", "desktop_app_rust/test_diagrams/ensemble.gsmd",
-                     "desktop_app_rust/test_diagrams/features.erd", "desktop_app_rust/test_diagrams/imkerei.erd"];
+        let files = ["app/test_diagrams/railway.erd", "app/test_diagrams/ensemble.gsmd",
+                     "app/test_diagrams/features.erd", "app/test_diagrams/imkerei.erd"];
         let path = root.join(files[which]);
         let text = std::fs::read_to_string(&path).unwrap();
         let kind = if files[which].ends_with(".gsmd") { Kind::Gsm } else { Kind::Er };
@@ -262,8 +262,8 @@ proptest! {
         use diagram_core::editor::Editor;
         use diagram_core::panel::{self, Field};
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-        let files = ["desktop_app_rust/test_diagrams/railway.erd", "desktop_app_rust/test_diagrams/ensemble.gsmd",
-                     "desktop_app_rust/test_diagrams/features.erd", "desktop_app_rust/test_diagrams/imkerei.erd"];
+        let files = ["app/test_diagrams/railway.erd", "app/test_diagrams/ensemble.gsmd",
+                     "app/test_diagrams/features.erd", "app/test_diagrams/imkerei.erd"];
         let text = std::fs::read_to_string(root.join(files[which])).unwrap();
         let kind = if files[which].ends_with(".gsmd") { Kind::Gsm } else { Kind::Er };
         let doc = Document::parse(&text, kind).unwrap();

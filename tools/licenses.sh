@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The licences of the Rust crates built into ERDTeX, listed by cargo-about
-# (cargo install cargo-about --locked --features cli) into desktop_app_rust/licenses/:
+# (cargo install cargo-about --locked --features cli) into app/licenses/:
 #   rust-desktop.txt  the desktop program (shown in Help -> About -> Licences)
 #   rust-core.txt     the core, as the website runs it
 #   rust-pdf.txt      the website's PDF export
@@ -9,7 +9,7 @@
 #   tools/licenses.sh           write the lists
 #   tools/licenses.sh --check   fail if they are out of date (tools/check_rust.sh)
 set -euo pipefail
-cd "$(dirname "$0")/../desktop_app_rust"
+cd "$(dirname "$0")/../app"
 # shellcheck disable=SC1091
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 out=licenses

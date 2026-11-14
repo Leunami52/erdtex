@@ -107,11 +107,8 @@ mod tests {
     use super::*;
 
     fn airline() -> String {
-        std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../desktop_app_rust/test_diagrams/railway.erd"
-        ))
-        .unwrap()
+        std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../app/test_diagrams/railway.erd"))
+            .unwrap()
     }
 
     fn check(path: &Path, format: &str) {

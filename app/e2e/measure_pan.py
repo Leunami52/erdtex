@@ -36,7 +36,7 @@ def stats(d, what):
 
 def main():
     tmp = Path(tempfile.mkdtemp(prefix="erdtex-pan-"))
-    shutil.copy(HERE.parent.parent / "desktop_app_rust/test_diagrams/railway.erd", tmp / "railway.erd")
+    shutil.copy(HERE.parent.parent / "app/test_diagrams/railway.erd", tmp / "railway.erd")
     d = Driver(APP, {"ERDTEX_CONFIG_DIR": str(tmp / "cfg"), "ERDTEX_PRIVATE_CLIPBOARD": "1"})
     try:
         d.call("window.__erdtex.setMode('light')")

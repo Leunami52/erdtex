@@ -16,7 +16,7 @@ ER and GSM diagrams for LaTeX, in two parts:
 - **In the browser:** [leunami52.github.io/erdtex](https://leunami52.github.io/erdtex/). Everything but
   the LaTeX preview works there, also offline after the first visit; nothing you draw leaves your browser.
 - **On the desktop:** the deb (Debian, Ubuntu 22.04 and newer), the rpm (Fedora) or the Windows installer,
-  from the [releases](../../releases). The user guide: [`desktop_app_rust/README.md`](desktop_app_rust/README.md).
+  from the [releases](../../releases). The user guide: [`app/README.md`](app/README.md).
 - **The LaTeX packages:** from the releases, or from the program (*Help → Save LaTeX Packages…*). Their
   manuals: [`latex_packages/manuals/`](latex_packages/manuals/), and how to use them:
   [`latex_packages/README.md`](latex_packages/README.md).
@@ -40,14 +40,14 @@ and a document includes it with `\inputerdiagram{people.erd}` after `\usepackage
 | Folder | What it is |
 |---|---|
 | [`latex_packages/`](latex_packages/README.md) | The two packages, their manuals and their tests |
-| [`desktop_app_rust/`](desktop_app_rust/README.md) | ERDTeX: the core (Rust, also compiled to WebAssembly), the page (Svelte), the desktop app (Tauri); how it's built: [`ARCHITECTURE.md`](desktop_app_rust/ARCHITECTURE.md) |
-| `desktop_app_rust/rulebook/` | The rule books (*Help → Rule Books*): one page per rule, checked by the tests |
+| [`app/`](app/README.md) | ERDTeX: the core (Rust, also compiled to WebAssembly), the page (Svelte), the desktop app (Tauri); how it's built: [`ARCHITECTURE.md`](app/ARCHITECTURE.md) |
+| `app/rulebook/` | The rule books (*Help → Rule Books*): one page per rule, checked by the tests |
 | `tools/` | The checks, building and testing the releases, the licence lists |
 
 ## Building and testing
 
 Needs Rust (with the `wasm32-unknown-unknown` target), Node.js, `wasm-pack` and the Tauri prerequisites
-of your system (WebKitGTK 4.1 on Linux). Then, in `desktop_app_rust/`:
+of your system (WebKitGTK 4.1 on Linux). Then, in `app/`:
 
 ```sh
 npm ci

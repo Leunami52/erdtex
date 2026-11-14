@@ -16,7 +16,7 @@ news="${1:?usage: tools/release_github.sh NEWS.md [--draft|--packages]}"
 mode="${2:-}"
 [ -f "$news" ] || { echo "$news: not found" >&2; exit 1; }
 version=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' \
-  "$root/desktop_app_rust/src-tauri/tauri.conf.json")
+  "$root/app/src-tauri/tauri.conf.json")
 packages=$(sed -n 's/.*\\ProvidesPackage{erdiagram}\[[^]]* v\([0-9.]*\) .*/\1/p' "$root/latex_packages/erdiagram.sty")
 [ -n "$packages" ] || { echo "the packages' version wasn't found in erdiagram.sty" >&2; exit 1; }
 

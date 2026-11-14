@@ -25,8 +25,8 @@ SOFTWARE.
 The LaTeX packages in latex_packages/ (erdiagram, gsmdiagram) and their manuals
 are under the LaTeX Project Public License 1.3c: latex_packages/LICENSE.
 
-The Latin Modern fonts in desktop_app_rust/fonts/ are under the GUST Font
-License: desktop_app_rust/fonts/GUST-FONT-LICENSE.txt.
+The Latin Modern fonts in app/fonts/ are under the GUST Font
+License: app/fonts/GUST-FONT-LICENSE.txt.
 
 The libraries the program is built with are under their own licences, listed in
-desktop_app_rust/licenses/ and shown in Help -> About.
+app/licenses/ and shown in Help -> About.

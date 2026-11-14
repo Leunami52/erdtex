@@ -133,8 +133,7 @@ fn formats_and_options() {
 
 #[test]
 fn the_converted_diagram_gets_the_defaults_and_the_gsm_one_stays() {
-    let path =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../desktop_app_rust/test_diagrams/ensemble.gsmd");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../app/test_diagrams/ensemble.gsmd");
     let text = std::fs::read_to_string(path).unwrap();
     let gsm = Document::parse(&text, Kind::Gsm).unwrap();
     let before = gsm.to_text();
