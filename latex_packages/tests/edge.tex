@@ -1,0 +1,90 @@
+\documentclass{article}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{erdiagram}
+\usepackage{gsmdiagram}
+\begin{document}
+\section*{Leaks}
+\ifdefined\entity entity LEAKED\else entity not defined outside (good)\fi;
+\ifdefined\abstract abstract is the article-class macro\fi;
+\ifdefined\link link LEAKED\else link not defined outside (good)\fi
+
+\section*{File input, width, grid}
+\inputerdiagram[width=0.6\textwidth, grid]{sample.erd}
+
+\inputerdiagram[max width=3cm]{sample.erd}\quad
+\inputerdiagram[height=1.5cm]{sample.erd}
+
+\section*{Routing and cardinalities}
+\begin{erdiagram}[card placement=beside]
+  \entity{a}(0,0){A}
+  \relationship{r}(5,2){R}
+  \entity{b}(10,0){B}
+  \point{j}(5,-1.5)
+  \link[ortho=|-]{a}{r}{(0,n)}
+  \link[ortho=-|]{r}{b}{(1,1)}
+  \relationship{s}(5,-3){S}
+  \link[via={(0,-3)}]{a}{s}{mc}
+  \link[via={(10,-3)}]{s}{b}{c}
+  \link[inline]{a.south east}{s}{1}
+  \link[bend=-20, card side=below, role=boss]{b.south west}{s}{m}
+\end{erdiagram}
+
+\section*{Generalisation variants and Chen attributes}
+\begin{erdiagram}
+  \setup{constraint color=blue}
+  \entity{p}(0,0){Player}
+  \isa[sub card=m, super card=1]{i1}(0,-2){p}
+  \entity{s1}(-2,-4){Soccer}\entity{s2}(2,-4){Tennis}
+  \link{s1}{i1}\link{s2}{i1}
+  \entity{e}(7,0){Employee}
+  \canbe[constraint pos=inside]{c1}(7,-2){e}{io}
+  \entity{r1}(5,-4){Researcher}\entity{r2}(9,-4){Lecturer}
+  \link{r1}{c1}\link{r2}{c1}
+  \isa[constraint pos=north east]{i2}(12,-2){e}{cd}
+  \entity{x1}(12,-4){X}\link{x1}{i2}
+  \attribute[key, of=p]{a1}(-3,1.2){number}
+  \attribute[derived, of=p]{a2}(-3,0){age}
+  \attribute[multivalued, of=p]{a3}(-3,-1.2){phone}
+  \attribute[composite, of=e]{a4}(10,1.5){address}
+  \attribute[of=a4]{a5}(12.5,2.5){street}
+  \attribute[of=a4]{a6}(12.5,1){city}
+\end{erdiagram}
+
+\section*{Numeric anchors, shifts, alignments, braces}
+\begin{erdiagram}
+  \entity{c}(0,0){Centre}
+  \attributes[anchor=60]{c}{at 60 degrees}
+  \attributes[anchor=-30]{c}{at -30 degrees}
+  \attributes[anchor=200]{c}{at 200}
+  \attributes[anchor=north, xshift=-1cm, side=left]{c}{*one, two}
+  \attributes[anchor=west, align=top]{c}{top, aligned, bar}
+  \attributes[anchor=south, dir=down, side=left, spread=0.5cm]{c}{{with, comma}, \textit{italic}, *\emph{key}}
+  \relationship[color=yellow]{r}(6,0){Rel}
+  \attributes[anchor=south]{r}{date, time}
+  \attributes[anchor=west, align=bottom, font=\tiny\color{blue}]{r}{tiny, blue}
+\end{erdiagram}
+
+\section*{GSM inside a figure}
+\begin{figure}[h]\centering
+\begin{gsmdiagram}[scale=0.9]
+  \abstract{person}(0,0){Person}
+  \representable{pname}(-2,2){PName}
+  \attribute{person}{pname}{has name}
+  \aggregation{addr}(4,1){Address}
+  \attribute{person}{addr}{lives in}
+  \representable{street}(2.5,-1){Street}
+  \representable{city}(5.5,-1){City}
+  \component{addr}{street}\component{addr}{city}
+  \grouping[label pos=east]{langs}(1.5,-2.5){Languages}
+  \multiattribute{person}{langs}{speaks}
+  \representable{lang}(1.5,-4.5){Language}
+  \component{langs}{lang}
+  \subtype{tourist}(-3,-2.5){Tourist}
+  \specialization[label color=red]{tourist}{person}{[derived]}
+  \subtype{guide}(-3,-5){Guide}
+  \generalization{guide}{tourist}
+  \link{guide}{lang}
+\end{gsmdiagram}
+\caption{GSM in a float}
+\end{figure}
+\end{document}

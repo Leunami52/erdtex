@@ -1,0 +1,51 @@
+% academy.gsmd -- test diagram: an academy: trainees, instructors, workshops and rooms (GSM)
+\setup{sans serif}
+\abstract{person}(-2.5,5.75){Person}
+\abstract{room}(1.25,6){Room}
+\abstract{city}(6.25,6.25){City}
+\abstract{master}(-1.25,-5.5){Final project}
+\subtype{student}(5.75,3.25){Trainee}
+\abstract{department}(-7,1.25){Club}
+\abstract{course}(0,1){Workshop}
+\representable{pname}(-5.5,8.5){PName}
+\representable{person2}(-5.5,7.5){Person ID}
+\representable{location}(-5.5,6.5){Location}
+\representable{room2}(-0.25,8.5){Room ID}
+\representable{city2}(3.75,8.5){City ID}
+\representable{cname}(3.75,7.5){CName}
+\attribute[bend=-36]{person}{pname}{has name}
+\attribute[bend=-27]{person}{person2}{has ID}
+\attribute[bend=-8]{person}{location}{born at}
+\attribute{room}{room2}{has ID}
+\attribute[bend=-35]{city}{city2}{has ID}
+\attribute[bend=-18]{city}{cname}{has name}
+\attribute{student}{city}{resides in}
+\specialization{student}{person}
+\subtype{professor}(-6,-1.75){Instructor}
+\specialization{professor}{person}
+\subtype{undergrad}(8.25,1){Beginner}
+\subtype{master2}(4,-2){Advanced\\Trainee}
+\specialization{undergrad}{student}
+\specialization{master2}{student}{Subtype}
+\attribute{master2}{master}{writes}
+\multiattribute{professor}{master}{supervises}
+\subtype{permanent}(-9,-1.75){Permanent\\Instr.}
+\subtype{visiting}(-6.25,-4.25){Visiting\\Instr.}
+\generalization{permanent}{professor}
+\generalization{visiting}{professor}
+\multiattribute{professor}{department}{affiliated with}
+\representable{dname}(-10.25,3){DName}
+\attribute{department}{dname}{has name}
+\grouping{person3}(-5.5,3.5){Person List}
+\component{person3}{person}{Person}
+\attribute{department}{person3}{includes}
+\representable{course2}(-1.75,-1.25){Workshop ID}
+\representable{time}(-1.75,-2.25){Time}
+\attribute{course}{course2}{has ID}
+\attribute[bend=64]{course}{time}{scheduled at}
+\attribute{course}{professor}{held by}
+\attribute{course}{room}{held at}
+\multiattribute[bend=30]{professor}{course}{holds}
+\multiattribute{student}{course}{registered for}
+\multiattribute[bend=29]{student}{course}{plans to attend}
+

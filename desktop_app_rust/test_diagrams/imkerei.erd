@@ -1,0 +1,39 @@
+% imkerei.erd -- test diagram: eine Imkerei: Imker, Bienenvölker, Projekte und Versuche (min-max)
+\entity{labor}(0,0){Werkstatt}
+\attributes[anchor=north]{labor}{*Name, Website}
+\relationship{leitet}(3.6,0){wird betreut\\von}
+\entity{forscher}(7.2,0){Meister*in}
+\attributes[anchor=north]{forscher}{PersNr}
+\relationship{arbeitet}(10.8,0){arbeitet\\an}
+\entity{studie}(14.4,0){Projekt}
+\attributes[anchor=north]{studie}{*ProjektID, Titel, Startjahr}
+\relationship{baut}(19.2,0){baut\\auf}
+\relationship{beschaeftigt}(3.6,-2.6){beschäftigt}
+\attributes[anchor=south]{beschaeftigt}{von, bis}
+\entity{person}(9,-5.4){Person}
+\attributes[anchor=south]{person}{*PersonID, Name, E-Mail}
+\isa{isa}(7.2,-3.2){person}{co}
+\relationship{durchfuehrt}(10.8,-2.6){durchführt}
+\relationship{in}(14.4,-2.6){in}
+\entity{hund}(0,-5.4){Bienenvolk}
+\attributes[anchor=south]{hund}{*VolkID, Name, Art, GebDatum}
+\relationship{pflegt}(2.6,-5.4){pflegt}
+\entity{halter}(5.4,-5.4){Imker*in}
+\attributes[anchor=south]{halter}{Adresse}
+\relationship{mit}(5,-7.8){mit}
+\entity{session}(10.8,-7.8){Termin}
+\attributes[anchor=south east]{session}{*TerminID, Datum}
+\relationship[weak]{besteht}(14.4,-7.8){besteht\\aus}
+\entity[weak]{trial}(18,-7.8){Versuch}
+\attributes[anchor=south]{trial}{*Nummer, Bedingung, Ergebnis}
+\link{labor}{leitet}{1}\link{leitet}{forscher}{1}
+\link{forscher}{arbeitet}{n}\link{arbeitet}{studie}{n}
+\link[role=Nachfolgerin]{studie}{baut}{n}
+\link[role=Vorgaengerin, ortho=|-]{studie.south east}{baut.south}{1}
+\link{labor}{beschaeftigt}{n}\link{beschaeftigt}{forscher}{n}
+\link{forscher}{isa}\link{halter}{isa}
+\link{forscher}{durchfuehrt}{1}\link{durchfuehrt}{session}{n}
+\link{studie}{in}{1}\link{in}{session}{n}
+\link{hund}{pflegt}{n}\link{pflegt}{halter}{1}
+\link{hund}{mit}{1}\link{mit}{session}{n}
+\link{session}{besteht}{1}\link[double]{besteht}{trial}{n}

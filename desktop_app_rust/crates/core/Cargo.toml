@@ -1,0 +1,25 @@
+[package]
+name = "diagram-core"
+version = "0.1.0"
+description = "ERDTeX's core: no I/O, for the desktop and for WebAssembly"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde_json = { version = "1", optional = true }
+rustybuzz = "0.20"
+unicode-normalization = "0.1.26"
+
+[features]
+# JSON for the arranging graph and results (arrange::json), used by the page's interface
+json = ["dep:serde_json"]
+
+[dev-dependencies]
+insta = "1.49.0"
+proptest = "1"
+serde_json = "1"
+toml = "0.9"
+
+[[example]]
+name = "arrange_check"
+required-features = ["json"]

@@ -1,0 +1,44 @@
+{
+  "name": "erdtex",
+  "private": true,
+  "version": "3.5.0",
+  "type": "module",
+  "scripts": {
+    "wasm": "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS=--remap-path-prefix=$HOME=~ wasm-pack build crates/core-wasm --release --target web --out-dir ../../frontend/src/wasm --out-name core --no-pack",
+    "wasm:pdf": "CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS=--remap-path-prefix=$HOME=~ wasm-pack build crates/pdf-wasm --release --target web --out-dir ../../frontend/src/wasm-pdf --out-name svgpdf --no-pack",
+    "dev": "npm run wasm && vite",
+    "dev:web": "npm run wasm && npm run wasm:pdf && vite --mode web",
+    "build:web": "npm run wasm && npm run wasm:pdf && vite build --mode web",
+    "build": "npm run wasm && vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "tauri": "tauri",
+    "test": "vitest run --config vite.config.ts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-opener": "2.7.3",
+    "browser-fs-access": "0.38.0",
+    "dockview-core": "8.9.0",
+    "fflate": "0.8.3",
+    "lucide": "^0.469.0",
+    "marked": "18.1.1",
+    "pdfjs-dist": "^6.5.438",
+    "smol-toml": "1.9.1",
+    "webcola": "3.4.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tauri-apps/cli": "^2",
+    "@tsconfig/svelte": "^5",
+    "rollup-plugin-license": "3.7.2",
+    "svelte": "^5.56.3",
+    "svelte-check": "^4.6.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "^5.1.0"
+  }
+}

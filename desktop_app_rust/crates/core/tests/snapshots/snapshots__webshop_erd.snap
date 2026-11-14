@@ -1,0 +1,973 @@
+---
+source: crates/core/tests/snapshots.rs
+expression: "report(&text, kind)"
+---
+== problems
+== relational schema
+Relational schema
+Notation: _name_ primary key, /name/ foreign key, _/name/_ both
+
+HR:
+  Member : {(_/PersonID/_ : integer, SocialSecurityNbr : string, HouseNbr : string, Street : string, PostalCode : integer, Region : string, Function : string, Password : string, Authorization : string)}
+  InventoryMgmt.Team : {(_TeamID_ : integer, Name : string)}
+  Member_partOf_InventoryMgmt.Team : {(_/PersonID/_ : integer, _/TeamID/_ : integer)}
+  InventoryMgmt.Team_updates_SaleInventoryItem : {(_/TeamID/_ : integer, _/ItemID/_ : integer)}
+LoggingSubdomain:
+  LogEntry : {(_SessionID_ : integer, Date : date, Time : time, ActionType : string, /concernsPersonID/ : integer, /performedByPersonID/ : integer, /clientID/ : integer, /InvoiceNbr/ : string, /DateOfIssue/ : date, /BookingID/ : integer, /ArticleCode/ : integer)}
+  LogDetail : {(_DetailSq_ : string, FieldName : string, OldValue : string, NewValue : string, /SessionID/ : integer)}
+Inventory:
+  SaleUnit : {(_ArticleCode_ : integer, Name : string, WholesalerPurchasePrice : decimal, ShopperSalePrice : decimal, MerchantSalePrice : decimal, category : string)}
+  SpecialOffer : {(_/ArticleCode/_ : integer, IncludedItemsCount : integer)}
+  Article : {(_/ArticleCode/_ : integer)}
+  SaleInventoryItem : {(_ItemID_ : integer, Name : string, StockCount : integer, Weight : float, Size : float)}
+  SpecialCondition : {(_ConditionID_ : integer, Description : string, ConditionType : string, ConditionValue : string)}
+  SaleInventoryItem_partOf_SaleUnit : {(_/ItemID/_ : integer, _/ArticleCode/_ : integer)}
+  SpecialOffer_requires_SpecialCondition : {(_/ArticleCode/_ : integer, _/ConditionID/_ : integer)}
+Customers:
+  Client : {(_clientID_ : integer, CreditRating : string, EmailAddress : string, category : string)}
+  Shopper : {(_/PersonID/_ : integer, aaa : string, /clientID/ : integer)}
+  Merchant : {(_/clientID/_ : integer, MerchantID : integer, SectorOfTrade : string)}
+  CreditCard : {(_CardNbr_ : string, ValidityDate : date, /clientID/ : integer)}
+  PhoneContact : {(_ContactID_ : integer, PhoneNbr : string, /clientID/ : integer)}
+Sales:
+  PurchaseOrder : {(_BookingID_ : integer, DeliveryDate : date, DeliveryAddress : string, Password : string, DeliveryInstructions : string, /InvoiceNbr/ : string, /DateOfIssue/ : date)}
+  Invoice : {(_InvoiceNbr_ : string, _DateOfIssue_ : date, TimeForPayment : decimal, TimeOfPayment : decimal)}
+  CreditCardOpt. : {(_/OptionID/_ : integer, /CardNbr/ : string)}
+  PayOnDeliveryOpt. : {(_/OptionID/_ : integer, /ContactID/ : integer)}
+  PaymentOption : {(_OptionID_ : integer, category : string)}
+  SalesDiscount : {(_/BookingID/_ : integer, _DiscountPosition_ : string, Amount : decimal, Type(abs.|Rel.) : string)}
+  BookingItem : {(_/BookingID/_ : integer, _PositionNbr_ : string, Quantity : integer, UnitPriceAtPurchase : string, /ArticleCode/ : integer)}
+  chooses : {(/BookingID/ : integer, _/OptionID/_ : integer, _/clientID/_ : integer)}
+Outside of any box:
+  Person : {(_PersonID_ : integer, FirstName : string, LastName : string)}
+  Constants : {(_ID_ : integer, Name : string, Value : string)}
+  PersonCategory : {(_/PersonID/_ : integer, _category_ : string)}
+
+Foreign keys
+  Member.PersonID -> Person.PersonID
+  LogEntry.concernsPersonID -> Person.PersonID
+  LogEntry.performedByPersonID -> Person.PersonID
+  LogEntry.clientID -> Client.clientID
+  LogEntry.(InvoiceNbr, DateOfIssue) -> Invoice.(InvoiceNbr, DateOfIssue)
+  LogEntry.BookingID -> PurchaseOrder.BookingID
+  LogEntry.ArticleCode -> SaleUnit.ArticleCode
+  SpecialOffer.ArticleCode -> SaleUnit.ArticleCode
+  Article.ArticleCode -> SaleUnit.ArticleCode
+  Shopper.PersonID -> Person.PersonID
+  Shopper.clientID -> Client.clientID
+  Merchant.clientID -> Client.clientID
+  PurchaseOrder.(InvoiceNbr, DateOfIssue) -> Invoice.(InvoiceNbr, DateOfIssue)
+  CreditCard.clientID -> Client.clientID
+  PhoneContact.clientID -> Client.clientID
+  CreditCardOpt..OptionID -> PaymentOption.OptionID
+  CreditCardOpt..CardNbr -> CreditCard.CardNbr
+  PayOnDeliveryOpt..OptionID -> PaymentOption.OptionID
+  PayOnDeliveryOpt..ContactID -> PhoneContact.ContactID
+  SalesDiscount.BookingID -> PurchaseOrder.BookingID
+  BookingItem.BookingID -> PurchaseOrder.BookingID
+  BookingItem.ArticleCode -> SaleUnit.ArticleCode
+  LogDetail.SessionID -> LogEntry.SessionID
+  PersonCategory.PersonID -> Person.PersonID
+  Member_partOf_InventoryMgmt.Team.PersonID -> Member.PersonID
+  Member_partOf_InventoryMgmt.Team.TeamID -> InventoryMgmt.Team.TeamID
+  InventoryMgmt.Team_updates_SaleInventoryItem.TeamID -> InventoryMgmt.Team.TeamID
+  InventoryMgmt.Team_updates_SaleInventoryItem.ItemID -> SaleInventoryItem.ItemID
+  SaleInventoryItem_partOf_SaleUnit.ItemID -> SaleInventoryItem.ItemID
+  SaleInventoryItem_partOf_SaleUnit.ArticleCode -> SaleUnit.ArticleCode
+  SpecialOffer_requires_SpecialCondition.ArticleCode -> SpecialOffer.ArticleCode
+  SpecialOffer_requires_SpecialCondition.ConditionID -> SpecialCondition.ConditionID
+  chooses.BookingID -> PurchaseOrder.BookingID
+  chooses.OptionID -> PaymentOption.OptionID
+  chooses.clientID -> Client.clientID
+
+Unique (alternate keys)
+  Shopper.clientID
+  Merchant.MerchantID
+  PurchaseOrder.(InvoiceNbr, DateOfIssue)
+  chooses.(BookingID, clientID)
+  chooses.(BookingID, OptionID)
+
+Allowed values
+  SaleUnit.category in {Article, Special offer}
+  Client.category in {Shopper, Merchant}
+  PaymentOption.category in {Credit card opt., Pay on delivery opt.}
+  PersonCategory.category in {Member, Shopper}
+
+Not enforced by the schema
+  each Member has, in part of, Inventory mgmt. team: at least 1
+  each Sale unit has, in part of, Sale inventory item: at least 1
+  each Purchase order has, in contains, Booking item: at least 1
+  each Invoice has, in encompasses, Purchase order: at least 1
+  each Log entry has, in has, Log detail: at least 1
+
+Decisions
+  Generalisation Person ← Member, Shopper (co): (1) Multiple relations + categorisation relation
+  Generalisation Client ← Shopper, Merchant (cd): (1) Multiple relations + categorisation attribute
+  Generalisation Sale unit ← Article, Special offer (cd): (1) Multiple relations + categorisation attribute
+  Generalisation Payment option ← Credit card opt., Pay on delivery opt. (cd): (1) Multiple relations + categorisation attribute
+  Relationship chooses (1:1:1): Purchase order – Payment option – Client: Own relation, key: Payment option, Client
+  Relationship encompasses (1:1): Purchase order – Invoice: Foreign key in Purchase order
+
+Notes
+  64 data type(s) were guessed from attribute names (set them with 'name : type').
+
+== SQL (PostgreSQL)
+-- PostgreSQL schema, generated by ERDTeX
+-- decision: Generalisation Person ← Member, Shopper (co): (1) Multiple relations + categorisation relation
+-- decision: Generalisation Client ← Shopper, Merchant (cd): (1) Multiple relations + categorisation attribute
+-- decision: Generalisation Sale unit ← Article, Special offer (cd): (1) Multiple relations + categorisation attribute
+-- decision: Generalisation Payment option ← Credit card opt., Pay on delivery opt. (cd): (1) Multiple relations + categorisation attribute
+-- decision: Relationship chooses (1:1:1): Purchase order – Payment option – Client: Own relation, key: Payment option, Client
+-- decision: Relationship encompasses (1:1): Purchase order – Invoice: Foreign key in Purchase order
+-- note: 64 data type(s) were guessed from attribute names (set them with 'name : type').
+
+DROP TABLE IF EXISTS Chooses CASCADE;
+DROP TABLE IF EXISTS SpecialOffer_requires_SpecialCondition CASCADE;
+DROP TABLE IF EXISTS SaleInventoryItem_partOf_SaleUnit CASCADE;
+DROP TABLE IF EXISTS InventoryMgmtTeam_updates_SaleInventoryItem CASCADE;
+DROP TABLE IF EXISTS Member_partOf_InventoryMgmtTeam CASCADE;
+DROP TABLE IF EXISTS PersonCategory CASCADE;
+DROP TABLE IF EXISTS SpecialCondition CASCADE;
+DROP TABLE IF EXISTS LogDetail CASCADE;
+DROP TABLE IF EXISTS BookingItem CASCADE;
+DROP TABLE IF EXISTS SalesDiscount CASCADE;
+DROP TABLE IF EXISTS PayOnDeliveryOpt CASCADE;
+DROP TABLE IF EXISTS CreditCardOpt CASCADE;
+DROP TABLE IF EXISTS PaymentOption CASCADE;
+DROP TABLE IF EXISTS PhoneContact CASCADE;
+DROP TABLE IF EXISTS CreditCard CASCADE;
+DROP TABLE IF EXISTS Merchant CASCADE;
+DROP TABLE IF EXISTS Shopper CASCADE;
+DROP TABLE IF EXISTS SaleInventoryItem CASCADE;
+DROP TABLE IF EXISTS Article CASCADE;
+DROP TABLE IF EXISTS SpecialOffer CASCADE;
+DROP TABLE IF EXISTS LogEntry CASCADE;
+DROP TABLE IF EXISTS SaleUnit CASCADE;
+DROP TABLE IF EXISTS PurchaseOrder CASCADE;
+DROP TABLE IF EXISTS Invoice CASCADE;
+DROP TABLE IF EXISTS Client CASCADE;
+DROP TABLE IF EXISTS InventoryMgmtTeam CASCADE;
+DROP TABLE IF EXISTS Constants CASCADE;
+DROP TABLE IF EXISTS Member CASCADE;
+DROP TABLE IF EXISTS Person CASCADE;
+
+-- entity type Person
+CREATE TABLE Person (
+    personID   INTEGER NOT NULL,
+    firstName  VARCHAR(255),
+    lastName   VARCHAR(255),
+    CONSTRAINT pk_Person PRIMARY KEY (personID)
+);
+
+-- entity type Member, subtype of Person
+-- box: HR
+CREATE TABLE Member (
+    personID           INTEGER NOT NULL,
+    socialSecurityNbr  VARCHAR(255),
+    houseNbr           VARCHAR(255),
+    Street             VARCHAR(255),
+    postalCode         INTEGER,
+    Region             VARCHAR(255),
+    Function           VARCHAR(255),
+    Password           VARCHAR(255),
+    "Authorization"    VARCHAR(255),
+    CONSTRAINT pk_Member PRIMARY KEY (personID),
+    CONSTRAINT fk_Member_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE
+);
+
+-- entity type Constants
+CREATE TABLE Constants (
+    ID     INTEGER NOT NULL,
+    Name   VARCHAR(255),
+    Value  VARCHAR(255),
+    CONSTRAINT pk_Constants PRIMARY KEY (ID)
+);
+
+-- entity type Inventory mgmt. team
+-- box: HR
+CREATE TABLE InventoryMgmtTeam (
+    teamID  INTEGER NOT NULL,
+    Name    VARCHAR(255),
+    CONSTRAINT pk_InventoryMgmtTeam PRIMARY KEY (teamID)
+);
+
+-- entity type Client
+-- box: Customers
+CREATE TABLE Client (
+    clientID      INTEGER NOT NULL,
+    creditRating  VARCHAR(255),
+    emailAddress  VARCHAR(255),
+    category      VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_Client PRIMARY KEY (clientID),
+    CONSTRAINT ck_Client_category CHECK (category IN ('Shopper', 'Merchant'))
+);
+
+-- entity type Invoice
+-- box: Sales
+CREATE TABLE Invoice (
+    invoiceNbr      VARCHAR(255) NOT NULL,
+    dateOfIssue     DATE NOT NULL,
+    timeForPayment  NUMERIC(12,2),
+    timeOfPayment   NUMERIC(12,2),
+    CONSTRAINT pk_Invoice PRIMARY KEY (invoiceNbr, dateOfIssue)
+);
+
+-- entity type Purchase order
+-- box: Sales
+CREATE TABLE PurchaseOrder (
+    bookingID             INTEGER NOT NULL,
+    deliveryDate          DATE,
+    deliveryAddress       VARCHAR(255),
+    Password              VARCHAR(255),
+    deliveryInstructions  VARCHAR(255),
+    invoiceNbr            VARCHAR(255) NOT NULL,
+    dateOfIssue           DATE NOT NULL,
+    CONSTRAINT pk_PurchaseOrder PRIMARY KEY (bookingID),
+    CONSTRAINT uq_PurchaseOrder_invoic_7d6f62 UNIQUE (invoiceNbr, dateOfIssue),
+    CONSTRAINT fk_PurchaseOrder_Invoice FOREIGN KEY (invoiceNbr, dateOfIssue) REFERENCES Invoice (invoiceNbr, dateOfIssue)
+);
+
+-- entity type Sale unit
+-- box: Inventory
+CREATE TABLE SaleUnit (
+    articleCode              INTEGER NOT NULL,
+    Name                     VARCHAR(255),
+    wholesalerPurchasePrice  NUMERIC(12,2),
+    shopperSalePrice         NUMERIC(12,2),
+    merchantSalePrice        NUMERIC(12,2),
+    category                 VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_SaleUnit PRIMARY KEY (articleCode),
+    CONSTRAINT ck_SaleUnit_category CHECK (category IN ('Article', 'Special offer'))
+);
+
+-- entity type Log entry
+-- box: LoggingSubdomain
+CREATE TABLE LogEntry (
+    sessionID            INTEGER NOT NULL,
+    "Date"               DATE,
+    Time                 TIME,
+    actionType           VARCHAR(255),
+    concernsPersonID     INTEGER NOT NULL,
+    performedByPersonID  INTEGER NOT NULL,
+    clientID             INTEGER NOT NULL,
+    invoiceNbr           VARCHAR(255) NOT NULL,
+    dateOfIssue          DATE NOT NULL,
+    bookingID            INTEGER NOT NULL,
+    articleCode          INTEGER NOT NULL,
+    CONSTRAINT pk_LogEntry PRIMARY KEY (sessionID),
+    CONSTRAINT fk_LogEntry_Person FOREIGN KEY (concernsPersonID) REFERENCES Person (personID),
+    CONSTRAINT fk_LogEntry_Person_2 FOREIGN KEY (performedByPersonID) REFERENCES Person (personID),
+    CONSTRAINT fk_LogEntry_Client FOREIGN KEY (clientID) REFERENCES Client (clientID),
+    CONSTRAINT fk_LogEntry_Invoice FOREIGN KEY (invoiceNbr, dateOfIssue) REFERENCES Invoice (invoiceNbr, dateOfIssue),
+    CONSTRAINT fk_LogEntry_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID),
+    CONSTRAINT fk_LogEntry_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- entity type Special offer, subtype of Sale unit
+-- box: Inventory
+CREATE TABLE SpecialOffer (
+    articleCode         INTEGER NOT NULL,
+    includedItemsCount  INTEGER,
+    CONSTRAINT pk_SpecialOffer PRIMARY KEY (articleCode),
+    CONSTRAINT fk_SpecialOffer_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode) ON DELETE CASCADE
+);
+
+-- entity type Article, subtype of Sale unit
+-- box: Inventory
+CREATE TABLE Article (
+    articleCode  INTEGER NOT NULL,
+    CONSTRAINT pk_Article PRIMARY KEY (articleCode),
+    CONSTRAINT fk_Article_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode) ON DELETE CASCADE
+);
+
+-- entity type Sale inventory item
+-- box: Inventory
+CREATE TABLE SaleInventoryItem (
+    itemID      INTEGER NOT NULL,
+    Name        VARCHAR(255),
+    stockCount  INTEGER,
+    Weight      DOUBLE PRECISION,
+    "Size"      DOUBLE PRECISION,
+    CONSTRAINT pk_SaleInventoryItem PRIMARY KEY (itemID)
+);
+
+-- entity type Shopper, subtype of Person, subtype of Client
+-- box: Customers
+CREATE TABLE Shopper (
+    personID  INTEGER NOT NULL,
+    aaa       VARCHAR(255),
+    clientID  INTEGER NOT NULL,
+    CONSTRAINT pk_Shopper PRIMARY KEY (personID),
+    CONSTRAINT uq_Shopper_clientID UNIQUE (clientID),
+    CONSTRAINT fk_Shopper_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE,
+    CONSTRAINT fk_Shopper_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Merchant, subtype of Client
+-- box: Customers
+CREATE TABLE Merchant (
+    clientID       INTEGER NOT NULL,
+    merchantID     INTEGER NOT NULL,
+    sectorOfTrade  VARCHAR(255),
+    CONSTRAINT pk_Merchant PRIMARY KEY (clientID),
+    CONSTRAINT uq_Merchant_merchantID UNIQUE (merchantID),
+    CONSTRAINT fk_Merchant_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Credit card (weak)
+-- box: Customers
+CREATE TABLE CreditCard (
+    cardNbr       VARCHAR(255) NOT NULL,
+    validityDate  DATE,
+    clientID      INTEGER NOT NULL,
+    CONSTRAINT pk_CreditCard PRIMARY KEY (cardNbr),
+    CONSTRAINT fk_CreditCard_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Phone contact (weak)
+-- box: Customers
+CREATE TABLE PhoneContact (
+    contactID  INTEGER NOT NULL,
+    phoneNbr   VARCHAR(255),
+    clientID   INTEGER NOT NULL,
+    CONSTRAINT pk_PhoneContact PRIMARY KEY (contactID),
+    CONSTRAINT fk_PhoneContact_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Payment option (weak)
+-- box: Sales
+CREATE TABLE PaymentOption (
+    optionID  INTEGER NOT NULL,
+    category  VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_PaymentOption PRIMARY KEY (optionID),
+    CONSTRAINT ck_PaymentOption_category CHECK (category IN ('Credit card opt.', 'Pay on delivery opt.'))
+);
+
+-- entity type Credit card opt., subtype of Payment option
+-- box: Sales
+CREATE TABLE CreditCardOpt (
+    optionID  INTEGER NOT NULL,
+    cardNbr   VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_CreditCardOpt PRIMARY KEY (optionID),
+    CONSTRAINT fk_CreditCardOpt_PaymentOption FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID) ON DELETE CASCADE,
+    CONSTRAINT fk_CreditCardOpt_CreditCard FOREIGN KEY (cardNbr) REFERENCES CreditCard (cardNbr)
+);
+
+-- entity type Pay on delivery opt., subtype of Payment option
+-- box: Sales
+CREATE TABLE PayOnDeliveryOpt (
+    optionID   INTEGER NOT NULL,
+    contactID  INTEGER NOT NULL,
+    CONSTRAINT pk_PayOnDeliveryOpt PRIMARY KEY (optionID),
+    CONSTRAINT fk_PayOnDeliveryOpt_Pay_30a94c FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID) ON DELETE CASCADE,
+    CONSTRAINT fk_PayOnDeliveryOpt_Pho_78ff3e FOREIGN KEY (contactID) REFERENCES PhoneContact (contactID)
+);
+
+-- entity type Sales discount (weak)
+-- box: Sales
+CREATE TABLE SalesDiscount (
+    bookingID         INTEGER NOT NULL,
+    discountPosition  VARCHAR(255) NOT NULL,
+    Amount            NUMERIC(12,2),
+    typeAbsRel        VARCHAR(255),
+    CONSTRAINT pk_SalesDiscount PRIMARY KEY (bookingID, discountPosition),
+    CONSTRAINT fk_SalesDiscount_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID) ON DELETE CASCADE
+);
+
+-- entity type Booking item (weak)
+-- box: Sales
+CREATE TABLE BookingItem (
+    bookingID            INTEGER NOT NULL,
+    positionNbr          VARCHAR(255) NOT NULL,
+    Quantity             INTEGER,
+    unitPriceAtPurchase  VARCHAR(255),
+    articleCode          INTEGER NOT NULL,
+    CONSTRAINT pk_BookingItem PRIMARY KEY (bookingID, positionNbr),
+    CONSTRAINT fk_BookingItem_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID) ON DELETE CASCADE,
+    CONSTRAINT fk_BookingItem_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- entity type Log detail (weak)
+-- box: LoggingSubdomain
+CREATE TABLE LogDetail (
+    detailSq   VARCHAR(255) NOT NULL,
+    fieldName  VARCHAR(255),
+    oldValue   VARCHAR(255),
+    newValue   VARCHAR(255),
+    sessionID  INTEGER NOT NULL,
+    CONSTRAINT pk_LogDetail PRIMARY KEY (detailSq),
+    CONSTRAINT fk_LogDetail_LogEntry FOREIGN KEY (sessionID) REFERENCES LogEntry (sessionID) ON DELETE CASCADE
+);
+
+-- entity type Special condition
+-- box: Inventory
+CREATE TABLE SpecialCondition (
+    conditionID     INTEGER NOT NULL,
+    Description     VARCHAR(255),
+    conditionType   VARCHAR(255),
+    conditionValue  VARCHAR(255),
+    CONSTRAINT pk_SpecialCondition PRIMARY KEY (conditionID)
+);
+
+-- categorisation of Person (overlapping)
+CREATE TABLE PersonCategory (
+    personID  INTEGER NOT NULL,
+    category  VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_PersonCategory PRIMARY KEY (personID, category),
+    CONSTRAINT ck_PersonCategory_category CHECK (category IN ('Member', 'Shopper')),
+    CONSTRAINT fk_PersonCategory_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE
+);
+
+-- relationship part of (complex-complex)
+-- box: HR
+CREATE TABLE Member_partOf_InventoryMgmtTeam (
+    personID  INTEGER NOT NULL,
+    teamID    INTEGER NOT NULL,
+    CONSTRAINT pk_Member_partOf_Invent_b8482f PRIMARY KEY (personID, teamID),
+    CONSTRAINT fk_Member_partOf_Invent_6f1718 FOREIGN KEY (personID) REFERENCES Member (personID),
+    CONSTRAINT fk_Member_partOf_Invent_fc13a9 FOREIGN KEY (teamID) REFERENCES InventoryMgmtTeam (teamID)
+);
+
+-- relationship updates (complex-complex)
+-- box: HR
+CREATE TABLE InventoryMgmtTeam_updates_SaleInventoryItem (
+    teamID  INTEGER NOT NULL,
+    itemID  INTEGER NOT NULL,
+    CONSTRAINT pk_InventoryMgmtTeam_up_4a4c27 PRIMARY KEY (teamID, itemID),
+    CONSTRAINT fk_InventoryMgmtTeam_up_5c7207 FOREIGN KEY (teamID) REFERENCES InventoryMgmtTeam (teamID),
+    CONSTRAINT fk_InventoryMgmtTeam_up_5fc8ef FOREIGN KEY (itemID) REFERENCES SaleInventoryItem (itemID)
+);
+
+-- relationship part of (complex-complex)
+-- box: Inventory
+CREATE TABLE SaleInventoryItem_partOf_SaleUnit (
+    itemID       INTEGER NOT NULL,
+    articleCode  INTEGER NOT NULL,
+    CONSTRAINT pk_SaleInventoryItem_pa_8ee06d PRIMARY KEY (itemID, articleCode),
+    CONSTRAINT fk_SaleInventoryItem_pa_883bf3 FOREIGN KEY (itemID) REFERENCES SaleInventoryItem (itemID),
+    CONSTRAINT fk_SaleInventoryItem_pa_77c36e FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- relationship requires (complex-complex)
+-- box: Inventory
+CREATE TABLE SpecialOffer_requires_SpecialCondition (
+    articleCode  INTEGER NOT NULL,
+    conditionID  INTEGER NOT NULL,
+    CONSTRAINT pk_SpecialOffer_require_ee3b4c PRIMARY KEY (articleCode, conditionID),
+    CONSTRAINT fk_SpecialOffer_require_78f858 FOREIGN KEY (articleCode) REFERENCES SpecialOffer (articleCode),
+    CONSTRAINT fk_SpecialOffer_require_47417b FOREIGN KEY (conditionID) REFERENCES SpecialCondition (conditionID)
+);
+
+-- relationship chooses (3-ary 1:1:1)
+-- box: Sales
+CREATE TABLE Chooses (
+    bookingID  INTEGER NOT NULL,
+    optionID   INTEGER NOT NULL,
+    clientID   INTEGER NOT NULL,
+    CONSTRAINT pk_Chooses PRIMARY KEY (optionID, clientID),
+    CONSTRAINT uq_Chooses_bookingID_clientID UNIQUE (bookingID, clientID),
+    CONSTRAINT uq_Chooses_bookingID_optionID UNIQUE (bookingID, optionID),
+    CONSTRAINT fk_Chooses_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID),
+    CONSTRAINT fk_Chooses_PaymentOption FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID),
+    CONSTRAINT fk_Chooses_Client FOREIGN KEY (clientID) REFERENCES Client (clientID)
+);
+
+-- not enforced by this schema (needs triggers or the application):
+--   each Member has, in part of, Inventory mgmt. team: at least 1
+--   each Sale unit has, in part of, Sale inventory item: at least 1
+--   each Purchase order has, in contains, Booking item: at least 1
+--   each Invoice has, in encompasses, Purchase order: at least 1
+--   each Log entry has, in has, Log detail: at least 1
+
+== SQL (SQLite)
+-- SQLite schema, generated by ERDTeX
+-- decision: Generalisation Person ← Member, Shopper (co): (1) Multiple relations + categorisation relation
+-- decision: Generalisation Client ← Shopper, Merchant (cd): (1) Multiple relations + categorisation attribute
+-- decision: Generalisation Sale unit ← Article, Special offer (cd): (1) Multiple relations + categorisation attribute
+-- decision: Generalisation Payment option ← Credit card opt., Pay on delivery opt. (cd): (1) Multiple relations + categorisation attribute
+-- decision: Relationship chooses (1:1:1): Purchase order – Payment option – Client: Own relation, key: Payment option, Client
+-- decision: Relationship encompasses (1:1): Purchase order – Invoice: Foreign key in Purchase order
+-- note: 64 data type(s) were guessed from attribute names (set them with 'name : type').
+
+PRAGMA foreign_keys = ON;
+
+DROP TABLE IF EXISTS Chooses;
+DROP TABLE IF EXISTS SpecialOffer_requires_SpecialCondition;
+DROP TABLE IF EXISTS SaleInventoryItem_partOf_SaleUnit;
+DROP TABLE IF EXISTS InventoryMgmtTeam_updates_SaleInventoryItem;
+DROP TABLE IF EXISTS Member_partOf_InventoryMgmtTeam;
+DROP TABLE IF EXISTS PersonCategory;
+DROP TABLE IF EXISTS SpecialCondition;
+DROP TABLE IF EXISTS LogDetail;
+DROP TABLE IF EXISTS BookingItem;
+DROP TABLE IF EXISTS SalesDiscount;
+DROP TABLE IF EXISTS PayOnDeliveryOpt;
+DROP TABLE IF EXISTS CreditCardOpt;
+DROP TABLE IF EXISTS PaymentOption;
+DROP TABLE IF EXISTS PhoneContact;
+DROP TABLE IF EXISTS CreditCard;
+DROP TABLE IF EXISTS Merchant;
+DROP TABLE IF EXISTS Shopper;
+DROP TABLE IF EXISTS SaleInventoryItem;
+DROP TABLE IF EXISTS Article;
+DROP TABLE IF EXISTS SpecialOffer;
+DROP TABLE IF EXISTS LogEntry;
+DROP TABLE IF EXISTS SaleUnit;
+DROP TABLE IF EXISTS PurchaseOrder;
+DROP TABLE IF EXISTS Invoice;
+DROP TABLE IF EXISTS Client;
+DROP TABLE IF EXISTS InventoryMgmtTeam;
+DROP TABLE IF EXISTS Constants;
+DROP TABLE IF EXISTS Member;
+DROP TABLE IF EXISTS Person;
+
+-- entity type Person
+CREATE TABLE Person (
+    personID   INTEGER NOT NULL,
+    firstName  VARCHAR(255),
+    lastName   VARCHAR(255),
+    CONSTRAINT pk_Person PRIMARY KEY (personID)
+);
+
+-- entity type Member, subtype of Person
+-- box: HR
+CREATE TABLE Member (
+    personID           INTEGER NOT NULL,
+    socialSecurityNbr  VARCHAR(255),
+    houseNbr           VARCHAR(255),
+    Street             VARCHAR(255),
+    postalCode         INTEGER,
+    Region             VARCHAR(255),
+    Function           VARCHAR(255),
+    Password           VARCHAR(255),
+    "Authorization"    VARCHAR(255),
+    CONSTRAINT pk_Member PRIMARY KEY (personID),
+    CONSTRAINT fk_Member_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE
+);
+
+-- entity type Constants
+CREATE TABLE Constants (
+    ID     INTEGER NOT NULL,
+    Name   VARCHAR(255),
+    Value  VARCHAR(255),
+    CONSTRAINT pk_Constants PRIMARY KEY (ID)
+);
+
+-- entity type Inventory mgmt. team
+-- box: HR
+CREATE TABLE InventoryMgmtTeam (
+    teamID  INTEGER NOT NULL,
+    Name    VARCHAR(255),
+    CONSTRAINT pk_InventoryMgmtTeam PRIMARY KEY (teamID)
+);
+
+-- entity type Client
+-- box: Customers
+CREATE TABLE Client (
+    clientID      INTEGER NOT NULL,
+    creditRating  VARCHAR(255),
+    emailAddress  VARCHAR(255),
+    category      VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_Client PRIMARY KEY (clientID),
+    CONSTRAINT ck_Client_category CHECK (category IN ('Shopper', 'Merchant'))
+);
+
+-- entity type Invoice
+-- box: Sales
+CREATE TABLE Invoice (
+    invoiceNbr      VARCHAR(255) NOT NULL,
+    dateOfIssue     DATE NOT NULL,
+    timeForPayment  NUMERIC(12,2),
+    timeOfPayment   NUMERIC(12,2),
+    CONSTRAINT pk_Invoice PRIMARY KEY (invoiceNbr, dateOfIssue)
+);
+
+-- entity type Purchase order
+-- box: Sales
+CREATE TABLE PurchaseOrder (
+    bookingID             INTEGER NOT NULL,
+    deliveryDate          DATE,
+    deliveryAddress       VARCHAR(255),
+    Password              VARCHAR(255),
+    deliveryInstructions  VARCHAR(255),
+    invoiceNbr            VARCHAR(255) NOT NULL,
+    dateOfIssue           DATE NOT NULL,
+    CONSTRAINT pk_PurchaseOrder PRIMARY KEY (bookingID),
+    CONSTRAINT uq_PurchaseOrder_invoic_7d6f62 UNIQUE (invoiceNbr, dateOfIssue),
+    CONSTRAINT fk_PurchaseOrder_Invoice FOREIGN KEY (invoiceNbr, dateOfIssue) REFERENCES Invoice (invoiceNbr, dateOfIssue)
+);
+
+-- entity type Sale unit
+-- box: Inventory
+CREATE TABLE SaleUnit (
+    articleCode              INTEGER NOT NULL,
+    Name                     VARCHAR(255),
+    wholesalerPurchasePrice  NUMERIC(12,2),
+    shopperSalePrice         NUMERIC(12,2),
+    merchantSalePrice        NUMERIC(12,2),
+    category                 VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_SaleUnit PRIMARY KEY (articleCode),
+    CONSTRAINT ck_SaleUnit_category CHECK (category IN ('Article', 'Special offer'))
+);
+
+-- entity type Log entry
+-- box: LoggingSubdomain
+CREATE TABLE LogEntry (
+    sessionID            INTEGER NOT NULL,
+    "Date"               DATE,
+    Time                 TIME,
+    actionType           VARCHAR(255),
+    concernsPersonID     INTEGER NOT NULL,
+    performedByPersonID  INTEGER NOT NULL,
+    clientID             INTEGER NOT NULL,
+    invoiceNbr           VARCHAR(255) NOT NULL,
+    dateOfIssue          DATE NOT NULL,
+    bookingID            INTEGER NOT NULL,
+    articleCode          INTEGER NOT NULL,
+    CONSTRAINT pk_LogEntry PRIMARY KEY (sessionID),
+    CONSTRAINT fk_LogEntry_Person FOREIGN KEY (concernsPersonID) REFERENCES Person (personID),
+    CONSTRAINT fk_LogEntry_Person_2 FOREIGN KEY (performedByPersonID) REFERENCES Person (personID),
+    CONSTRAINT fk_LogEntry_Client FOREIGN KEY (clientID) REFERENCES Client (clientID),
+    CONSTRAINT fk_LogEntry_Invoice FOREIGN KEY (invoiceNbr, dateOfIssue) REFERENCES Invoice (invoiceNbr, dateOfIssue),
+    CONSTRAINT fk_LogEntry_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID),
+    CONSTRAINT fk_LogEntry_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- entity type Special offer, subtype of Sale unit
+-- box: Inventory
+CREATE TABLE SpecialOffer (
+    articleCode         INTEGER NOT NULL,
+    includedItemsCount  INTEGER,
+    CONSTRAINT pk_SpecialOffer PRIMARY KEY (articleCode),
+    CONSTRAINT fk_SpecialOffer_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode) ON DELETE CASCADE
+);
+
+-- entity type Article, subtype of Sale unit
+-- box: Inventory
+CREATE TABLE Article (
+    articleCode  INTEGER NOT NULL,
+    CONSTRAINT pk_Article PRIMARY KEY (articleCode),
+    CONSTRAINT fk_Article_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode) ON DELETE CASCADE
+);
+
+-- entity type Sale inventory item
+-- box: Inventory
+CREATE TABLE SaleInventoryItem (
+    itemID      INTEGER NOT NULL,
+    Name        VARCHAR(255),
+    stockCount  INTEGER,
+    Weight      REAL,
+    "Size"      REAL,
+    CONSTRAINT pk_SaleInventoryItem PRIMARY KEY (itemID)
+);
+
+-- entity type Shopper, subtype of Person, subtype of Client
+-- box: Customers
+CREATE TABLE Shopper (
+    personID  INTEGER NOT NULL,
+    aaa       VARCHAR(255),
+    clientID  INTEGER NOT NULL,
+    CONSTRAINT pk_Shopper PRIMARY KEY (personID),
+    CONSTRAINT uq_Shopper_clientID UNIQUE (clientID),
+    CONSTRAINT fk_Shopper_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE,
+    CONSTRAINT fk_Shopper_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Merchant, subtype of Client
+-- box: Customers
+CREATE TABLE Merchant (
+    clientID       INTEGER NOT NULL,
+    merchantID     INTEGER NOT NULL,
+    sectorOfTrade  VARCHAR(255),
+    CONSTRAINT pk_Merchant PRIMARY KEY (clientID),
+    CONSTRAINT uq_Merchant_merchantID UNIQUE (merchantID),
+    CONSTRAINT fk_Merchant_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Credit card (weak)
+-- box: Customers
+CREATE TABLE CreditCard (
+    cardNbr       VARCHAR(255) NOT NULL,
+    validityDate  DATE,
+    clientID      INTEGER NOT NULL,
+    CONSTRAINT pk_CreditCard PRIMARY KEY (cardNbr),
+    CONSTRAINT fk_CreditCard_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Phone contact (weak)
+-- box: Customers
+CREATE TABLE PhoneContact (
+    contactID  INTEGER NOT NULL,
+    phoneNbr   VARCHAR(255),
+    clientID   INTEGER NOT NULL,
+    CONSTRAINT pk_PhoneContact PRIMARY KEY (contactID),
+    CONSTRAINT fk_PhoneContact_Client FOREIGN KEY (clientID) REFERENCES Client (clientID) ON DELETE CASCADE
+);
+
+-- entity type Payment option (weak)
+-- box: Sales
+CREATE TABLE PaymentOption (
+    optionID  INTEGER NOT NULL,
+    category  VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_PaymentOption PRIMARY KEY (optionID),
+    CONSTRAINT ck_PaymentOption_category CHECK (category IN ('Credit card opt.', 'Pay on delivery opt.'))
+);
+
+-- entity type Credit card opt., subtype of Payment option
+-- box: Sales
+CREATE TABLE CreditCardOpt (
+    optionID  INTEGER NOT NULL,
+    cardNbr   VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_CreditCardOpt PRIMARY KEY (optionID),
+    CONSTRAINT fk_CreditCardOpt_PaymentOption FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID) ON DELETE CASCADE,
+    CONSTRAINT fk_CreditCardOpt_CreditCard FOREIGN KEY (cardNbr) REFERENCES CreditCard (cardNbr)
+);
+
+-- entity type Pay on delivery opt., subtype of Payment option
+-- box: Sales
+CREATE TABLE PayOnDeliveryOpt (
+    optionID   INTEGER NOT NULL,
+    contactID  INTEGER NOT NULL,
+    CONSTRAINT pk_PayOnDeliveryOpt PRIMARY KEY (optionID),
+    CONSTRAINT fk_PayOnDeliveryOpt_Pay_30a94c FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID) ON DELETE CASCADE,
+    CONSTRAINT fk_PayOnDeliveryOpt_Pho_78ff3e FOREIGN KEY (contactID) REFERENCES PhoneContact (contactID)
+);
+
+-- entity type Sales discount (weak)
+-- box: Sales
+CREATE TABLE SalesDiscount (
+    bookingID         INTEGER NOT NULL,
+    discountPosition  VARCHAR(255) NOT NULL,
+    Amount            NUMERIC(12,2),
+    typeAbsRel        VARCHAR(255),
+    CONSTRAINT pk_SalesDiscount PRIMARY KEY (bookingID, discountPosition),
+    CONSTRAINT fk_SalesDiscount_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID) ON DELETE CASCADE
+);
+
+-- entity type Booking item (weak)
+-- box: Sales
+CREATE TABLE BookingItem (
+    bookingID            INTEGER NOT NULL,
+    positionNbr          VARCHAR(255) NOT NULL,
+    Quantity             INTEGER,
+    unitPriceAtPurchase  VARCHAR(255),
+    articleCode          INTEGER NOT NULL,
+    CONSTRAINT pk_BookingItem PRIMARY KEY (bookingID, positionNbr),
+    CONSTRAINT fk_BookingItem_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID) ON DELETE CASCADE,
+    CONSTRAINT fk_BookingItem_SaleUnit FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- entity type Log detail (weak)
+-- box: LoggingSubdomain
+CREATE TABLE LogDetail (
+    detailSq   VARCHAR(255) NOT NULL,
+    fieldName  VARCHAR(255),
+    oldValue   VARCHAR(255),
+    newValue   VARCHAR(255),
+    sessionID  INTEGER NOT NULL,
+    CONSTRAINT pk_LogDetail PRIMARY KEY (detailSq),
+    CONSTRAINT fk_LogDetail_LogEntry FOREIGN KEY (sessionID) REFERENCES LogEntry (sessionID) ON DELETE CASCADE
+);
+
+-- entity type Special condition
+-- box: Inventory
+CREATE TABLE SpecialCondition (
+    conditionID     INTEGER NOT NULL,
+    Description     VARCHAR(255),
+    conditionType   VARCHAR(255),
+    conditionValue  VARCHAR(255),
+    CONSTRAINT pk_SpecialCondition PRIMARY KEY (conditionID)
+);
+
+-- categorisation of Person (overlapping)
+CREATE TABLE PersonCategory (
+    personID  INTEGER NOT NULL,
+    category  VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_PersonCategory PRIMARY KEY (personID, category),
+    CONSTRAINT ck_PersonCategory_category CHECK (category IN ('Member', 'Shopper')),
+    CONSTRAINT fk_PersonCategory_Person FOREIGN KEY (personID) REFERENCES Person (personID) ON DELETE CASCADE
+);
+
+-- relationship part of (complex-complex)
+-- box: HR
+CREATE TABLE Member_partOf_InventoryMgmtTeam (
+    personID  INTEGER NOT NULL,
+    teamID    INTEGER NOT NULL,
+    CONSTRAINT pk_Member_partOf_Invent_b8482f PRIMARY KEY (personID, teamID),
+    CONSTRAINT fk_Member_partOf_Invent_6f1718 FOREIGN KEY (personID) REFERENCES Member (personID),
+    CONSTRAINT fk_Member_partOf_Invent_fc13a9 FOREIGN KEY (teamID) REFERENCES InventoryMgmtTeam (teamID)
+);
+
+-- relationship updates (complex-complex)
+-- box: HR
+CREATE TABLE InventoryMgmtTeam_updates_SaleInventoryItem (
+    teamID  INTEGER NOT NULL,
+    itemID  INTEGER NOT NULL,
+    CONSTRAINT pk_InventoryMgmtTeam_up_4a4c27 PRIMARY KEY (teamID, itemID),
+    CONSTRAINT fk_InventoryMgmtTeam_up_5c7207 FOREIGN KEY (teamID) REFERENCES InventoryMgmtTeam (teamID),
+    CONSTRAINT fk_InventoryMgmtTeam_up_5fc8ef FOREIGN KEY (itemID) REFERENCES SaleInventoryItem (itemID)
+);
+
+-- relationship part of (complex-complex)
+-- box: Inventory
+CREATE TABLE SaleInventoryItem_partOf_SaleUnit (
+    itemID       INTEGER NOT NULL,
+    articleCode  INTEGER NOT NULL,
+    CONSTRAINT pk_SaleInventoryItem_pa_8ee06d PRIMARY KEY (itemID, articleCode),
+    CONSTRAINT fk_SaleInventoryItem_pa_883bf3 FOREIGN KEY (itemID) REFERENCES SaleInventoryItem (itemID),
+    CONSTRAINT fk_SaleInventoryItem_pa_77c36e FOREIGN KEY (articleCode) REFERENCES SaleUnit (articleCode)
+);
+
+-- relationship requires (complex-complex)
+-- box: Inventory
+CREATE TABLE SpecialOffer_requires_SpecialCondition (
+    articleCode  INTEGER NOT NULL,
+    conditionID  INTEGER NOT NULL,
+    CONSTRAINT pk_SpecialOffer_require_ee3b4c PRIMARY KEY (articleCode, conditionID),
+    CONSTRAINT fk_SpecialOffer_require_78f858 FOREIGN KEY (articleCode) REFERENCES SpecialOffer (articleCode),
+    CONSTRAINT fk_SpecialOffer_require_47417b FOREIGN KEY (conditionID) REFERENCES SpecialCondition (conditionID)
+);
+
+-- relationship chooses (3-ary 1:1:1)
+-- box: Sales
+CREATE TABLE Chooses (
+    bookingID  INTEGER NOT NULL,
+    optionID   INTEGER NOT NULL,
+    clientID   INTEGER NOT NULL,
+    CONSTRAINT pk_Chooses PRIMARY KEY (optionID, clientID),
+    CONSTRAINT uq_Chooses_bookingID_clientID UNIQUE (bookingID, clientID),
+    CONSTRAINT uq_Chooses_bookingID_optionID UNIQUE (bookingID, optionID),
+    CONSTRAINT fk_Chooses_PurchaseOrder FOREIGN KEY (bookingID) REFERENCES PurchaseOrder (bookingID),
+    CONSTRAINT fk_Chooses_PaymentOption FOREIGN KEY (optionID) REFERENCES PaymentOption (optionID),
+    CONSTRAINT fk_Chooses_Client FOREIGN KEY (clientID) REFERENCES Client (clientID)
+);
+
+-- not enforced by this schema (needs triggers or the application):
+--   each Member has, in part of, Inventory mgmt. team: at least 1
+--   each Sale unit has, in part of, Sale inventory item: at least 1
+--   each Purchase order has, in contains, Booking item: at least 1
+--   each Invoice has, in encompasses, Purchase order: at least 1
+--   each Log entry has, in has, Log detail: at least 1
+
+== layout (x0 y0 x1 y1 in pt, rounded)
+employee -167.9 305.9 -88.2 334.3
+- -87.9 275.9 2.1 364.3
+person 38.4 106.7 118.1 135.2
+- 118.4 106.6 178.8 135.3
+constants 109.5 177.8 189.2 206.3
+- 189.5 177.7 231.0 206.4
+inventory -263.6 170.4 -177.4 199.5
+- -177.1 175.6 -124.2 194.3
+log -239.0 -85.4 -159.3 -56.9
+- -302.9 -90.5 -239.3 -51.8
+sale -246.1 -249.0 -166.4 -220.5
+- -365.4 -259.0 -246.4 -210.4
+special -317.2 -355.7 -237.6 -327.2
+- -237.3 -370.3 -146.3 -356.0
+product -196.3 -355.7 -116.7 -327.2
+sale2 -523.5 -341.8 -443.9 -312.6
+- -483.7 -396.3 -426.4 -342.1
+client 10.0 -85.4 89.6 -56.9
+- 49.8 -56.6 113.5 -32.3
+shopper 152.2 -42.7 231.9 -14.2
+- 232.2 -32.8 264.6 -24.1
+merchant 152.2 -149.4 231.9 -120.9
+- 232.2 -144.5 309.0 -125.8
+purchase 95.3 -512.1 175.0 -483.7
+- 135.2 -483.4 224.2 -429.2
+invoice 230.5 -569.1 310.1 -540.6
+- 310.4 -574.2 398.8 -535.5
+credit 159.3 -206.3 239.0 -177.8
+- 239.3 -201.4 307.2 -182.7
+phone 159.3 -263.2 239.0 -234.7
+- 239.3 -258.3 301.3 -239.6
+credit2 243.1 -398.3 325.9 -369.9
+pay 240.8 -455.2 342.5 -426.8
+payment 86.7 -398.3 169.3 -369.9
+- 169.6 -388.5 227.6 -379.7
+sales -25.6 -611.7 54.1 -583.3
+- 54.4 -611.9 141.0 -583.2
+order 287.4 -505.0 367.0 -476.6
+- 367.3 -505.2 472.0 -476.5
+log3 -253.2 14.2 -173.6 42.7
+- -315.0 9.1 -253.5 47.8
+isa 49.8 14.2 106.7 106.4
+isa2 89.9 -92.5 234.7 -64.0
+isa3 -234.7 -298.8 -177.8 -249.3
+- -117.8 43.0 68.0 305.6
+- 101.3 -13.9 163.0 16.9
+- 196.2 -63.7 202.1 -43.0
+- 195.7 -120.6 202.7 -92.8
+- -193.6 -326.9 -169.2 -299.1
+- -259.3 -326.9 -224.4 -299.1
+partof -241.1 241.4 -171.4 285.0
+- -190.0 275.0 -148.0 305.6
+- -217.8 199.8 -209.9 243.4
+updates -263.3 93.9 -206.2 133.7
+- -232.4 131.5 -222.2 170.1
+owns 84.7 -190.6 142.9 -150.8
+owns2 63.4 -254.7 121.6 -214.8
+- 59.1 -156.7 104.8 -85.7
+- 53.6 -217.6 88.0 -85.7
+- 135.4 -182.0 159.0 -176.1
+- 117.1 -243.7 159.0 -237.9
+partof2 -404.7 -341.9 -335.0 -298.3
+- -443.6 -326.2 -401.9 -320.6
+- -350.7 -310.1 -234.1 -249.3
+requires -291.6 -418.3 -234.7 -378.4
+special2 -278.7 -469.5 -190.8 -441.0
+- -190.5 -474.6 -111.2 -435.9
+- -275.7 -381.1 -265.6 -356.0
+- -255.7 -440.7 -242.0 -413.3
+chooses 0.8 -363.2 70.4 -319.7
+appilies -13.1 -552.4 70.0 -500.4
+contains 198.7 -527.6 270.8 -482.5
+isa4 147.4 -441.0 213.4 -398.6
+- 208.7 -416.6 250.6 -398.6
+- 211.9 -434.2 240.5 -430.4
+references -38.6 -425.4 24.4 -385.5
+encompasses 119.6 -585.0 193.4 -538.9
+- 15.4 -583.0 25.5 -549.7
+- 57.8 -518.5 95.0 -508.6
+- 140.0 -542.6 150.1 -512.4
+- 190.3 -562.3 230.2 -554.9
+- 175.3 -505.5 202.1 -498.0
+- 263.9 -501.6 287.1 -495.9
+- 45.6 -483.4 125.9 -357.2
+- 55.8 -369.6 96.6 -350.8
+- 36.7 -320.1 49.0 -85.7
+- 15.6 -480.6 287.1 -411.2
+- -189.3 -393.8 -20.7 -249.3
+associates 360.1 -311.6 422.4 -271.7
+associates2 360.1 -361.3 422.4 -321.5
+- 301.3 -369.6 377.8 -303.3
+- 227.2 -282.6 373.8 -206.6
+- 229.3 -332.8 373.2 -263.5
+- 306.2 -426.5 378.9 -353.7
+- -475.3 -312.3 -242.9 99.3
+has -234.7 -41.3 -177.8 -1.4
+concerns -156.5 8.5 -99.6 48.4
+performed -118.2 -60.5 -38.3 -10.6
+concerns2 -113.8 -112.4 -56.9 -72.6
+concerns3 -128.0 -155.1 -71.1 -115.2
+concerns4 -199.2 -155.1 -142.3 -115.2
+concerns5 -270.3 -148.0 -213.4 -108.1
+- -205.6 -56.6 -199.3 -39.7
+- -213.3 -3.0 -206.9 13.9
+- -188.8 -56.6 -137.7 15.0
+- -110.5 36.3 45.8 106.4
+- -159.0 -59.3 -105.6 -43.6
+- -62.7 -20.1 63.7 106.4
+- -159.0 -88.2 -108.1 -78.7
+- -176.6 -125.5 -114.6 -85.7
+- -192.7 -119.7 -177.6 -85.7
+- -231.9 -114.8 -210.1 -85.7
+- -61.9 -88.8 9.7 -77.5
+- -88.6 -540.3 257.5 -147.6
+- -160.0 -483.4 122.9 -147.8
+- -236.4 -220.2 -211.1 -144.4
+- -533.5 -483.7 -106.7 -206.3
+- -7.1 -270.3 327.2 0.0
+- -334.3 -184.9 -28.5 64.0
+- -377.0 85.4 14.2 391.2
+- -56.9 -654.4 476.6 -241.8

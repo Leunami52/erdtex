@@ -1,0 +1,28 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}\usepackage{lmodern}
+\usepackage{erdiagram,gsmdiagram}
+\newcommand\sample{%
+  \entity{p}(0,0){Person}\attributes{p}{*PID, name}
+  \relationship[dependency=Id]{r}(4,0){has}\link{p}{r}{1}
+  \isa{i}(0,-2.2){p}{cd}\entity{a}(0,-4){Sub}\link{a}{i}
+  \partof{o}(4,-2.6)
+  \note(4,-4){a note}}
+\begin{document}
+Sans-serif per option:\par
+\begin{erdiagram}[sans serif]\sample\end{erdiagram}\par
+per setup:\par
+\begin{erdiagram}\setup{sans serif}\sample\end{erdiagram}\par
+\ersetup{sans serif}
+per document:\par
+\begin{erdiagram}\sample\end{erdiagram}\par
+but not for this:\par
+\begin{erdiagram}[sans serif=false]\sample\end{erdiagram}\par
+\ersetup{sans serif=false}
+and the text around stays serif. German:\par
+\begin{erdiagram}[label language=german, scale=0.5]\sample\end{erdiagram}\par
+GSM:\par
+\begin{gsmdiagram}[sans serif, scale=0.6]
+  \abstract{a}(0,0){Abstract}\representable{b}(4,0){Repr}\subtype{c}(8,0){Sub}
+  \attribute{a}{b}{label}
+\end{gsmdiagram}
+\end{document}

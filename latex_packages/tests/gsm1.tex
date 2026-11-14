@@ -1,0 +1,33 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{gsmdiagram}
+\begin{document}
+\begin{gsmdiagram}
+  \note(4,2){A very bad GSM diagram}
+  \abstract[color=blue]{vehicle}(0,0){Vehicle}
+  \abstract[color=green]{animal}(8,0){Animal}
+  \abstract{person}(0,-4){Person}
+  \representable[color=yellow]{address}(4,-5){Address}
+  \subtype[color=cyan]{car}(-1.5,-2){Car}
+  \subtype{truck}(1.5,-2){Truck}
+  \subtype[color=green]{dog}(7,-2){Dog}
+  \subtype{chi}(9,-2){Chihuahua}
+  \aggregation[label pos=north east]{agg1}(4,-2){owns}
+  \grouping[label pos=east]{grp1}(4,-3){Fleet}
+
+  \attribute{person}{address}{lives\_at}
+  \multiattribute[bend left=15]{person}{vehicle}{drives}
+  \component[bend left=15]{grp1}{person}{???}
+  \generalization{car}{vehicle}
+  \generalization{truck}{vehicle}
+  \specialization{dog}{animal}
+  \specialization[via={(10,-1)}]{chi}{animal}
+  \attribute[via={(0,-6) (11,-6) (11,0)}]{person}{animal}{has\_pet}
+  \link{person}{agg1}
+  \link{agg1}{truck}
+
+  \subdomain[color=blue!70]{Transport}{(-3,1.2) (3,1.2) (3,-3) (-3,-3)}
+  \subdomain[color=red!60, dotted]{Living}{(3,-4) (6.5,-5.8)}
+  \note[color=blue!70!black, above=2pt of animal]{[derived]}
+  \note[color=green!50!black, right=of animal]{[age $<$ 20 AND age $>$ 12]}
+\end{gsmdiagram}
+\end{document}

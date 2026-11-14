@@ -1,0 +1,797 @@
+% gsmdiagram.sty -- GSM (Generic Semantic Model) diagrams with TikZ
+%
+% Copyright (C) 2026 Leunami52
+%
+% This work may be distributed and/or modified under the conditions of the
+% LaTeX Project Public License, either version 1.3c of this license or (at
+% your option) any later version. The latest version of this license is in
+%     https://www.latex-project.org/lppl.txt
+% and version 1.3c or later is part of all distributions of LaTeX version
+% 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% The Current Maintainer of this work is Leunami52.
+% This work consists of the files erdiagram.sty, gsmdiagram.sty and their
+% manuals (erdiagram-manual.tex, gsmdiagram-manual.tex).
+%
+% Copy this single file next to your document and write
+%     \usepackage{gsmdiagram}
+%
+% Public interface (the only names defined globally):
+%   environment   gsmdiagram           \begin{gsmdiagram}[<options>] ... \end{gsmdiagram}
+%   command       \inputgsmdiagram     \inputgsmdiagram[<options>]{<file>}
+%   command       \gsmsetup            \gsmsetup{<style keys>}
+%
+% Inside a gsmdiagram environment (and only there) the following short
+% commands are available.  Optional (x,y) positions use TikZ coordinates
+% (default unit: cm).  [..] = optional key/value options.
+%
+%   \abstract[opts]{id}(x,y){Label}          abstract type (triangle)
+%   \representable[opts]{id}(x,y){Label}     representable type (rounded box)
+%   \subtype[opts]{id}(x,y){Label}           subtype (circle)
+%   \aggregation[opts]{id}(x,y){Label}       aggregation (crossed circle)
+%   \grouping[opts]{id}(x,y){Label}          grouping (crossed circle + bar)
+%   \point{id}(x,y)                          invisible junction / waypoint
+%   \attribute[opts]{from}{to}{name}         single-valued attribute  -->
+%   \multiattribute[opts]{from}{to}{name}    multi-valued attribute   -->>
+%   \component[opts]{from}{to}{name}         element of a constructed type (dashed)
+%   \generalization[opts]{sub}{super}{text}  disjoint IS-A (thick arrow)
+%   \specialization[opts]{sub}{super}{text}  overlapping IS-A (double arrow)
+%   \link[opts]{from}{to}{text}              plain line without arrow
+%   \note[opts](x,y){text}                   free text annotation
+%   \subdomain[opts]{Label}{(x,y) (x,y) ..}  subdomain frame (background)
+%   \grid(x1,y1)(x2,y2)                      helper grid with coordinates
+%   \setup{style keys}                       like \gsmsetup, local to diagram
+%  The last argument of the edge commands ({name}/{text}) is optional.
+%
+% Any option a command does not know is handed to TikZ unchanged, so e.g.
+% \subtype[below=of a]{b}{B} or \attribute[bend left=20]{a}{b}{x} work too.
+%
+% See gsmdiagram-manual.pdf for the full documentation.
+
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{gsmdiagram}[2026/11/07 v3.0.2 GSM (Generic Semantic Model) diagrams]
+
+\RequirePackage{tikz}
+\usetikzlibrary{calc,positioning,shapes.geometric,arrows.meta,backgrounds,patterns}
+
+% ====================================================================
+%  1.  STYLE PARAMETERS   (change with \gsmsetup{key=value, ...})
+% ====================================================================
+\pgfkeys{
+  /gsm/.is family, /gsm,
+  % -- abstract types (triangles) -------------------------------------
+  abstract fill/.initial           = gray!15,
+  abstract draw/.initial           = black,
+  abstract line width/.initial     = 0.6pt,
+  abstract text/.initial           = black,
+  abstract font/.initial           = \bfseries,
+  abstract minimum width/.initial  = 2.6cm,
+  abstract minimum height/.initial = 0.6cm,
+  abstract apex angle/.initial     = 90,
+  % -- representable types (rounded rectangles) -----------------------
+  repr fill/.initial               = gray!15,
+  repr draw/.initial               = black,
+  repr line width/.initial         = 0.6pt,
+  repr text/.initial               = black,
+  repr font/.initial               = \bfseries,
+  repr minimum width/.initial      = 2.4cm,
+  repr minimum height/.initial     = 0.9cm,
+  repr corner radius/.initial      = 6pt,
+  % -- subtypes (circles) ---------------------------------------------
+  sub fill/.initial                = gray!15,
+  sub draw/.initial                = black,
+  sub line width/.initial          = 0.6pt,
+  sub text/.initial                = black,
+  sub font/.initial                = \bfseries,
+  sub minimum size/.initial        = 1.4cm,
+  % -- aggregations / groupings (crossed circles) ---------------------
+  aggr fill/.initial               = white,
+  aggr draw/.initial               = black,
+  aggr line width/.initial         = 0.6pt,
+  aggr size/.initial               = 0.8cm,
+  aggr label color/.initial        = red!70!black,
+  aggr label font/.initial         = \small,
+  aggr label pos/.initial          = auto,   % or north, east, ...
+  % -- edges ----------------------------------------------------------
+  edge color/.initial              = black,
+  edge line width/.initial         = 0.5pt,
+  arrow length/.initial            = 6pt,
+  arrow width/.initial             = 4pt,
+  generalization line width/.initial    = 2pt,
+  specialization double distance/.initial = 1.5pt,
+  % -- edge labels (attribute names) -----------------------------------
+  label font/.initial              = \footnotesize\itshape,
+  label color/.initial             = black,
+  label pos/.initial               = 0.5,
+  label side/.initial              = auto,   % auto|above|below|left|right
+  label sloped/.initial            = true,   % false: horizontal labels
+  % -- notes ----------------------------------------------------------
+  note color/.initial              = red!70!black,
+  note font/.initial               = \small,
+  % -- subdomains -----------------------------------------------------
+  subdomain color/.initial         = blue!60,
+  subdomain label font/.initial    = \small\bfseries,
+  subdomain line width/.initial    = 1.2pt,
+  subdomain tuck/.initial          = 4pt,
+  subdomain label vpad/.initial    = 4pt,
+  subdomain label hpad/.initial    = 5pt,
+  % -- misc -----------------------------------------------------------
+  sans serif/.initial              = false,  % all text of the diagrams
+  sans serif/.default              = true,
+  rule warnings/.initial           = true,  % warn about GSM rule violations
+  grid color/.initial              = gray!25,
+  grid label color/.initial        = gray!55,
+  .unknown/.code={\PackageError{gsmdiagram}{Unknown style key
+     `\pgfkeyscurrentname'}{See the gsmdiagram manual for valid keys.}},
+}
+\newcommand\gsmsetup[1]{\pgfqkeys{/gsm}{#1}}
+\def\gsm@val#1{\pgfkeysvalueof{/gsm/#1}}
+
+% ====================================================================
+%  2.  TIKZ STYLES  (global, but prefixed with "gsm ")
+% ====================================================================
+\tikzset{
+  gsm abstract/.style={
+    isosceles triangle, shape border rotate=90, align=center,
+    isosceles triangle apex angle=\gsm@val{abstract apex angle},
+    draw=\gsm@val{abstract draw}, fill=\gsm@val{abstract fill},
+    line width=\gsm@val{abstract line width}, text=\gsm@val{abstract text},
+    font=\gsm@val{abstract font}, inner sep=1pt,
+    minimum width=\gsm@val{abstract minimum width},
+    minimum height=\gsm@val{abstract minimum height}},
+  gsm repr/.style={
+    rectangle, rounded corners=\gsm@val{repr corner radius}, align=center,
+    draw=\gsm@val{repr draw}, fill=\gsm@val{repr fill},
+    line width=\gsm@val{repr line width}, text=\gsm@val{repr text},
+    font=\gsm@val{repr font}, inner sep=5pt,
+    minimum width=\gsm@val{repr minimum width},
+    minimum height=\gsm@val{repr minimum height}},
+  gsm subtype/.style={
+    circle, align=center,
+    draw=\gsm@val{sub draw}, fill=\gsm@val{sub fill},
+    line width=\gsm@val{sub line width}, text=\gsm@val{sub text},
+    font=\gsm@val{sub font}, inner sep=2pt,
+    minimum size=\gsm@val{sub minimum size}},
+  gsm constructor/.style={
+    circle, inner sep=0pt,
+    draw=\gsm@val{aggr draw}, fill=\gsm@val{aggr fill},
+    line width=\gsm@val{aggr line width},
+    minimum size=\gsm@val{aggr size}},
+  gsm constructor lines/.style={
+    draw=\gsm@val{aggr draw}, line width=\gsm@val{aggr line width}},
+  gsm constructor label/.style={
+    font=\gsm@val{aggr label font}, text=\gsm@val{aggr label color},
+    inner sep=2pt, align=center},
+  gsm label/.style={
+    font=\gsm@val{label font}, text=\gsm@val{label color}, inner sep=2pt,
+    align=center},
+  gsm edge/.style={
+    draw=\gsm@val{edge color}, line width=\gsm@val{edge line width}},
+  gsm tip/.style={
+    -{Triangle[length=\gsm@val{arrow length}, width=\gsm@val{arrow width}]}},
+  gsm single/.style={gsm edge, gsm tip},
+  gsm multi/.style={gsm edge,
+    -{Triangle[length=\gsm@val{arrow length}, width=\gsm@val{arrow width}]
+      Triangle[length=\gsm@val{arrow length}, width=\gsm@val{arrow width}]}},
+  gsm component/.style={gsm edge, gsm tip, dashed},
+  gsm generalization/.style={gsm edge, gsm tip,
+    line width=\gsm@val{generalization line width}},
+  gsm specialization/.style={gsm edge, gsm tip, double,
+    double distance=\gsm@val{specialization double distance}},
+  gsm note/.style={
+    draw=none, fill=none, align=left, inner sep=0pt,
+    text=\gsm@val{note color}, font=\gsm@val{note font}},
+}
+
+% ====================================================================
+%  3.  INTERNAL HELPERS
+% ====================================================================
+%% <shared:helpers> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+% --- option handling: our keys are processed by pgfkeys, all unknown
+%     keys are collected in \gsm@tikz and handed to TikZ verbatim.
+\newtoks\gsm@tikz
+\def\gsm@addtikz#1{\gsm@tikz\expandafter{\the\gsm@tikz#1,}}
+\def\gsm@addtikzx#1{\edef\gsm@tmp{#1}\expandafter\gsm@addtikz\expandafter{\gsm@tmp}}
+\def\gsm@forward#1{%
+  \def\gsm@tmpv{#1}%
+  \ifx\gsm@tmpv\pgfkeysnovalue@text
+    \expandafter\gsm@addtikz\expandafter{\pgfkeyscurrentname}%
+  \else
+    \edef\gsm@tmp{\expandafter\unexpanded\expandafter{\pgfkeyscurrentname}%
+      ={\unexpanded{#1}}}%
+    \expandafter\gsm@addtikz\expandafter{\gsm@tmp}%
+  \fi}
+% turn the collected options into the TikZ style "gsm@user"
+\def\gsm@usetikz{\tikzset{gsm@user/.style/.expanded={\the\gsm@tikz}}}
+
+% --- boolean test for "true"/"false" values ---------------------------
+\def\gsm@true{true}
+\def\gsm@iftrue#1{\edef\gsm@tmpb{#1}\ifx\gsm@tmpb\gsm@true
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+% \gsm@ifempty{\macro or text}: the argument is expanded only ONCE and then
+% detokenized -- labels may contain fragile commands that must not be
+% expanded in an \edef (e.g. \textbar in OT1)
+\def\gsm@ifempty#1{\expandafter\gsm@ifempty@\expandafter{#1}}
+\def\gsm@ifempty@#1{\if\relax\detokenize{#1}\relax
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+% full expansion, for option values only
+\def\gsm@ifemptyx#1{\edef\gsm@tmpb{#1}\ifx\gsm@tmpb\@empty
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+\def\gsm@ifeq#1#2{\edef\gsm@tmpa{#1}\edef\gsm@tmpb{#2}\ifx\gsm@tmpa\gsm@tmpb
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+
+% --- colour tints: "blue" -> blue!20, "orange!30" stays as it is -------
+\def\gsm@tint#1{%
+  \edef\gsm@tmp{\noexpand\in@{!}{#1}}\gsm@tmp
+  \ifin@ \def\gsm@tinted{#1}%
+  \else
+    \gsm@ifeq{#1}{white}{\def\gsm@tinted{white}}{%
+    \gsm@ifeq{#1}{none}{\def\gsm@tinted{none}}{\def\gsm@tinted{#1!20}}}%
+  \fi}
+
+% --- diagram-wide registry of node types --------------------------------
+\newcount\gsm@diagramno
+\newcount\gsm@k   % general loop counter
+\def\gsm@reg#1{gsm@\the\gsm@diagramno @#1}  % name of a registry entry
+\def\gsm@settype#1#2{\expandafter\xdef\csname\gsm@reg{type@#1}\endcsname{#2}}
+\def\gsm@gettype#1{%  -> \gsm@type
+  \expandafter\ifx\csname\gsm@reg{type@#1}\endcsname\relax
+    \def\gsm@type{unknown}%
+  \else
+    \edef\gsm@type{\csname\gsm@reg{type@#1}\endcsname}%
+  \fi}
+\def\gsm@setflag#1{\expandafter\gdef\csname\gsm@reg{#1}\endcsname{}}
+\def\gsm@ifflag#1{\expandafter\ifx\csname\gsm@reg{#1}\endcsname\relax
+  \expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}
+\def\gsm@incr#1{\edef\gsm@tmpn{\the\numexpr\gsm@count{#1}+1\relax}%
+  \expandafter\global\expandafter\let\csname\gsm@reg{#1}\endcsname\gsm@tmpn}
+\def\gsm@count#1{\ifcsname\gsm@reg{#1}\endcsname\csname\gsm@reg{#1}\endcsname\else0\fi}
+\def\gsm@remember#1#2{% append id #2 to list #1
+  \expandafter\ifx\csname\gsm@reg{list@#1}\endcsname\relax
+    \expandafter\xdef\csname\gsm@reg{list@#1}\endcsname{#2}%
+  \else
+    \expandafter\xdef\csname\gsm@reg{list@#1}\endcsname{%
+      \csname\gsm@reg{list@#1}\endcsname,#2}%
+  \fi}
+\def\gsm@forlist#1#2{% #1 list name, #2 macro taking one id
+  \expandafter\ifx\csname\gsm@reg{list@#1}\endcsname\relax\else
+    \edef\gsm@tmpl{\csname\gsm@reg{list@#1}\endcsname}%
+    \@for\gsm@item:=\gsm@tmpl\do{\expandafter#2\expandafter{\gsm@item}}%
+  \fi}
+
+% --- optional trailing {argument}: \gsm@peekbrace{\cmd{a}{b}} calls
+%     \cmd{a}{b}{<arg>} if a brace group follows, else \cmd{a}{b}{}
+\long\def\gsm@peekbrace#1{\@ifnextchar\bgroup{#1}{#1{}}}
+
+% --- node id without anchor: "student.north" -> "student" -------------
+\def\gsm@splitid#1{\gsm@splitid@#1.\@nil}
+\def\gsm@splitid@#1.#2\@nil{\def\gsm@id{#1}}
+
+% --- rule warnings -------------------------------------------------------
+\def\gsm@rule#1{\gsm@iftrue{\gsm@val{rule warnings}}%
+  {\PackageWarning{gsmdiagram}{GSM rule: #1}}{}}
+
+
+% anchor on the opposite side (for labels placed next to a node)
+\def\gsm@oppositeanchor#1{%
+  \def\gsm@oppanchor{west}%
+  \gsm@ifeq{#1}{north}{\def\gsm@oppanchor{south}}{}%
+  \gsm@ifeq{#1}{south}{\def\gsm@oppanchor{north}}{}%
+  \gsm@ifeq{#1}{east}{\def\gsm@oppanchor{west}}{}%
+  \gsm@ifeq{#1}{west}{\def\gsm@oppanchor{east}}{}%
+  \gsm@ifeq{#1}{north east}{\def\gsm@oppanchor{south west}}{}%
+  \gsm@ifeq{#1}{north west}{\def\gsm@oppanchor{south east}}{}%
+  \gsm@ifeq{#1}{south east}{\def\gsm@oppanchor{north west}}{}%
+  \gsm@ifeq{#1}{south west}{\def\gsm@oppanchor{north east}}{}}
+%% </shared:helpers>
+
+% ====================================================================
+%  4.  NODES
+% ====================================================================
+\pgfkeys{
+  /gsm/node/.is family, /gsm/node,
+  .unknown/.code    = {\gsm@forward{#1}},
+  color/.code       = {\gsm@tint{#1}\gsm@addtikzx{fill=\gsm@tinted}},
+  colour/.forward to = /gsm/node/color,
+  label pos/.store in = \gsm@lpos,     % aggregations and groupings
+}
+\def\gsm@resetnode{\gsm@tikz{}\edef\gsm@lpos{\gsm@val{aggr label pos}}}
+
+% \gsm@node{<type>}{<tikz style>}{<options>}{<id>}{<position or -NoValue->}{<label>}
+\def\gsm@node#1#2#3#4#5#6{%
+  \gsm@resetnode
+  \pgfqkeys{/gsm/node}{#3}%
+  \gsm@usetikz
+  \IfNoValueTF{#5}%
+    {\node[#2, gsm@user] (#4) {#6};}%
+    {\node[#2, gsm@user] (#4) at (#5) {#6};}%
+  \gsm@settype{#4}{#1}%
+  \gsm@remember{#1}{#4}}
+
+\NewDocumentCommand\gsm@cmd@abstract{O{} m d() m}{%
+  \gsm@node{abstract}{gsm abstract}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\gsm@cmd@representable{O{} m d() m}{%
+  \gsm@node{representable}{gsm repr}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\gsm@cmd@subtype{O{} m d() m}{%
+  \gsm@node{subtype}{gsm subtype}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\gsm@cmd@aggregation{O{} m d() m}{%
+  \gsm@constructor{aggregation}{0}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\gsm@cmd@grouping{O{} m d() m}{%
+  \gsm@constructor{grouping}{1}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\gsm@cmd@point{m d()}{%
+  \IfNoValueTF{#2}{\PackageError{gsmdiagram}{\string\point\space needs a
+    position: \string\point{#1}(x,y)}{}}{\coordinate (#1) at (#2);}%
+  \gsm@settype{#1}{point}}
+
+% crossed circle (+ horizontal bar for groupings) with a red label
+\def\gsm@constructor#1#2#3#4#5#6{%
+  \gsm@node{#1}{gsm constructor}{#3}{#4}{#5}{}%
+  \draw[gsm constructor lines] (#4.north west) -- (#4.south east)
+                               (#4.north east) -- (#4.south west);
+  \ifnum#2=1 \draw[gsm constructor lines] (#4.west) -- (#4.east);\fi
+  \gsm@ifempty{#6}{}{%
+    \gsm@ifeq{\gsm@lpos}{auto}{%  placed at the end of the diagram
+      \gsm@remember{conlabels}{#4}%
+      \expandafter\xdef\csname\gsm@reg{conlabel@#4}\endcsname{\unexpanded{#6}}}%
+     {\gsm@oppositeanchor{\gsm@lpos}%
+      \node[gsm constructor label, anchor=\gsm@oppanchor] at (#4.\gsm@lpos) {#6};}}}
+
+% ====================================================================
+%  5.  EDGES (attributes, constructors, IS-A)
+% ====================================================================
+%% <shared:geometry> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+% --- parse "(1,2) (a.north) (3,4)" into \gsm@pts = {(1,2)}{(a.north)}{(3,4)}
+\def\gsm@stopmark{\gsm@stop}
+\def\gsm@parsevia#1{\def\gsm@pts{}\gsm@npts=0 \gsm@parsevia@#1(\gsm@stop)}
+\newcount\gsm@npts
+\def\gsm@parsevia@#1(#2){%
+  \def\gsm@tmp{#2}%
+  \ifx\gsm@tmp\gsm@stopmark\else
+    \advance\gsm@npts by 1
+    \expandafter\def\csname gsm@pt@\the\gsm@npts\endcsname{(#2)}%
+    \expandafter\gsm@parsevia@
+  \fi}
+
+% --- geometry of the segment from #1 to #2 (both "(...)") --------------
+%     -> \gsm@vx, \gsm@vy (direction, pt) and \gsm@len (length, pt)
+\def\gsm@measure#1#2{%
+  \edef\gsm@do{\noexpand\path[draw=none] #1 -- #2 coordinate[pos=0] (gsm@s)
+    coordinate[pos=1] (gsm@t);}\gsm@do
+  \pgfpointanchor{gsm@s}{center}\pgfgetlastxy\gsm@sx\gsm@sy
+  \pgfpointanchor{gsm@t}{center}\pgfgetlastxy\gsm@tx\gsm@ty
+  \pgfmathsetmacro\gsm@vx{\gsm@tx-\gsm@sx}%
+  \pgfmathsetmacro\gsm@vy{\gsm@ty-\gsm@sy}%
+  \pgfmathsetmacro\gsm@len{veclen(\gsm@vx,\gsm@vy)}}
+
+% --- which side of the direction (\gsm@vx,\gsm@vy) is "above", "right"..?
+%     #1 = auto|above|below|left|right  -> \gsm@sideleft = 1 (left) / 0
+\def\gsm@chooseside#1{%
+  \pgfmathparse{abs(\gsm@vx)>=abs(\gsm@vy) ? 1 : 0}%
+  \ifnum\pgfmathresult=1 \def\gsm@horiz{1}\else\def\gsm@horiz{0}\fi
+  \def\gsm@req{#1}%
+  \gsm@ifeq{\gsm@req}{auto}{%
+    \ifnum\gsm@horiz=1 \def\gsm@req{above}\else\def\gsm@req{right}\fi}{}%
+  \gsm@ifeq{\gsm@req}{above}{%
+    \ifdim\gsm@vx pt>0.01pt \def\gsm@sideleft{1}\else
+    \ifdim\gsm@vx pt<-0.01pt \def\gsm@sideleft{0}\else
+    \gsm@chooseside@right\fi\fi}{}%
+  \gsm@ifeq{\gsm@req}{below}{%
+    \ifdim\gsm@vx pt>0.01pt \def\gsm@sideleft{0}\else
+    \ifdim\gsm@vx pt<-0.01pt \def\gsm@sideleft{1}\else
+    \gsm@chooseside@left\fi\fi}{}%
+  \gsm@ifeq{\gsm@req}{right}{\gsm@chooseside@right}{}%
+  \gsm@ifeq{\gsm@req}{left}{\gsm@chooseside@left}{}}
+\def\gsm@chooseside@right{%
+  \ifdim\gsm@vy pt<-0.01pt \def\gsm@sideleft{1}\else
+  \ifdim\gsm@vy pt>0.01pt \def\gsm@sideleft{0}\else
+  \ifdim\gsm@vx pt>0pt \def\gsm@sideleft{0}\else\def\gsm@sideleft{1}\fi\fi\fi}
+\def\gsm@chooseside@left{%
+  \ifdim\gsm@vy pt<-0.01pt \def\gsm@sideleft{0}\else
+  \ifdim\gsm@vy pt>0.01pt \def\gsm@sideleft{1}\else
+  \ifdim\gsm@vx pt>0pt \def\gsm@sideleft{1}\else\def\gsm@sideleft{0}\fi\fi\fi}
+
+\newcount\gsm@i
+% --- "(student.north)" -> \gsm@id = student
+\def\gsm@idof#1{\expandafter\gsm@idof@#1}
+\def\gsm@idof@(#1){\gsm@splitid{#1}}
+% --- direction (degrees) from coordinate #1 to coordinate #2 -> \gsm@ang
+\def\gsm@angleof#1#2{%
+  \pgfpointanchor{#1}{center}\pgfgetlastxy\gsm@xa\gsm@ya
+  \pgfpointanchor{#2}{center}\pgfgetlastxy\gsm@xb\gsm@yb
+  \pgfmathsetmacro\gsm@ang{atan2(\gsm@yb-\gsm@ya,\gsm@xb-\gsm@xa)}}
+% --- remember that something leaves node #1 in direction #2 -> #3
+%     (#4 = edge number, 0 for attribute trees etc.)
+\def\gsm@recordangle#1#2#3#4{%
+  \gsm@angleof{#2}{#3}%
+  \gsm@remember{angles@#1}{#4/\gsm@ang}}
+\newif\ifgsm@sidesonly % wide text: centred above or below it would straddle the edges
+% --- the free direction around node #1 that is furthest away from all
+%     recorded edges -> \gsm@bestpos (anchor name), \gsm@oppanchor
+%     (candidates in order of preference; ties keep the earlier one)
+\def\gsm@bestdir#1{%
+  \def\gsm@bestscore{-1}\def\gsm@bestpos{east}%
+  \expandafter\ifx\csname\gsm@reg{list@angles@#1}\endcsname\relax
+    \def\gsm@tmplb{}\else\edef\gsm@tmplb{\csname\gsm@reg{list@angles@#1}\endcsname}\fi
+  \gsm@trydir{0}{east}\gsm@trydir{45}{north east}\gsm@trydir{315}{south east}%
+  \ifgsm@sidesonly\else\gsm@trydir{90}{north}\gsm@trydir{270}{south}\fi
+  \gsm@trydir{180}{west}%
+  \gsm@trydir{135}{north west}\gsm@trydir{225}{south west}%
+  \gsm@oppositeanchor{\gsm@bestpos}}
+\def\gsm@trydir#1#2{%
+  \def\gsm@score{180}\def\gsm@cand{#1}%
+  \ifx\gsm@tmplb\@empty\else
+    \@for\gsm@itemb:=\gsm@tmplb\do{\expandafter\gsm@trydir@\gsm@itemb\@nil}\fi
+  \ifdim\gsm@score pt>\gsm@bestscore pt
+    \let\gsm@bestscore\gsm@score\def\gsm@bestpos{#2}\fi}
+\def\gsm@trydir@#1/#2\@nil{%
+  \pgfmathsetmacro\gsm@d{min(Mod(\gsm@cand-#2,360),Mod(#2-\gsm@cand,360))}%
+  \pgfmathsetmacro\gsm@score{min(\gsm@score,\gsm@d)}}
+% --- bend=<signed angle>: positive bends left, negative right
+\def\gsm@setbend#1{%
+  \pgfmathparse{#1}\let\gsm@b\pgfmathresult
+  \ifdim\gsm@b pt>0pt \gsm@addtikzx{bend left=\gsm@b}\fi
+  \ifdim\gsm@b pt<0pt \pgfmathparse{-\gsm@b}\gsm@addtikzx{bend right=\pgfmathresult}\fi}
+%% </shared:geometry>
+
+\pgfkeys{
+  /gsm/edge/.is family, /gsm/edge,
+  .unknown/.code         = {\gsm@forward{#1}},
+  label pos/.store in    = \gsm@lblpos,
+  label side/.store in   = \gsm@lblside,
+  label segment/.store in= \gsm@lblseg,
+  label color/.code      = {\edef\gsm@lblopts{\gsm@lblopts text=#1,}},
+  label style/.code      = {\edef\gsm@lblopts{\gsm@lblopts\unexpanded{#1},}},
+  sloped/.code           = {\gsm@ifeq{#1}{false}{\def\gsm@lblsloped{false}}%
+                              {\def\gsm@lblsloped{true}}},
+  sloped/.default        = true,
+  horizontal/.code       = {\def\gsm@lblsloped{false}},
+  bend/.code             = {\gsm@setbend{#1}},
+  via/.store in          = \gsm@via,
+  ortho/.store in        = \gsm@ortho,
+}
+\def\gsm@resetedge{%
+  \edef\gsm@lblpos{\gsm@val{label pos}}%
+  \edef\gsm@lblside{\gsm@val{label side}}%
+  \edef\gsm@lblsloped{\gsm@val{label sloped}}%
+  \let\gsm@lblseg\@empty\let\gsm@lblopts\@empty
+  \let\gsm@via\@empty\let\gsm@ortho\@empty}
+
+% --- the edge drawer --------------------------------------------------
+%  input: \gsm@A, \gsm@B ("(...)"), \gsm@via, \gsm@ortho, \gsm@labeltext,
+%         \gsm@lbl..., \gsm@edgestyle, \gsm@tikz
+\def\gsm@drawedge{%
+  \gsm@usetikz
+  \gsm@ifempty{\gsm@via}{\gsm@npts=0 }{\expandafter\gsm@parsevia\expandafter{\gsm@via}}%
+  \expandafter\let\csname gsm@pt@0\endcsname\gsm@A
+  \advance\gsm@npts by 1
+  \expandafter\let\csname gsm@pt@\the\gsm@npts\endcsname\gsm@B
+  % the segment carrying the label (default: the middle one)
+  \gsm@ifempty{\gsm@lblseg}%
+    {\edef\gsm@lseg{\the\numexpr(\gsm@npts+1)/2\relax}}%
+    {\edef\gsm@lseg{\gsm@lblseg}}%
+  \def\gsm@nodes{}%
+  \gsm@ifempty{\gsm@labeltext}{}{%
+    \edef\gsm@E{\csname gsm@pt@\the\numexpr\gsm@lseg-1\endcsname}%
+    \edef\gsm@N{\csname gsm@pt@\gsm@lseg\endcsname}%
+    \gsm@measure\gsm@E\gsm@N
+    \gsm@chooseside{\gsm@lblside}%
+    \ifnum\gsm@sideleft=1 \def\gsm@lblauto{auto=left}\else\def\gsm@lblauto{auto=right}\fi
+    % sloped labels: TikZ turns text that would be upside down (edge
+    % pointing leftwards) by 180 degrees, so pick the anchor ourselves
+    \gsm@iftrue{\gsm@lblsloped}{%
+      \ifdim\gsm@vx pt<-0.01pt \def\gsm@flip{1}\else\def\gsm@flip{0}\fi
+      \ifnum\gsm@sideleft=\gsm@flip\relax
+        \def\gsm@lblauto{sloped, anchor=north}\else
+        \def\gsm@lblauto{sloped, anchor=south}\fi}{}%
+    \edef\gsm@nodes{node[gsm label, pos=\gsm@lblpos, \gsm@lblauto,
+      \unexpanded\expandafter{\gsm@lblopts}]
+      {\unexpanded\expandafter{\gsm@labeltext}}}}%
+  \gsm@ifempty{\gsm@ortho}{\def\gsm@op{to}}{%
+    \ifnum\gsm@npts=1 \let\gsm@op\gsm@ortho\else\def\gsm@op{to}\fi}%
+  \global\advance\gsm@edgeno by 1 \edef\gsm@en{\the\gsm@edgeno}%
+  \edef\gsm@pathtl{\csname gsm@pt@0\endcsname}%
+  \gsm@i=0
+  \loop\ifnum\gsm@i<\gsm@npts
+    \advance\gsm@i by 1
+    \edef\gsm@pathtl{\unexpanded\expandafter{\gsm@pathtl} \gsm@op\space}%
+    \ifnum\gsm@i=1
+      \edef\gsm@pathtl{\unexpanded\expandafter{\gsm@pathtl}%
+        coordinate[pos=0] (gsm@e@\gsm@en @a0) coordinate[pos=0.1] (gsm@e@\gsm@en @a1) }%
+    \fi
+    \ifnum\gsm@i=\gsm@npts
+      \edef\gsm@pathtl{\unexpanded\expandafter{\gsm@pathtl}%
+        coordinate[pos=1] (gsm@e@\gsm@en @b0) coordinate[pos=0.9] (gsm@e@\gsm@en @b1) }%
+    \fi
+    \ifnum\gsm@i=\gsm@lseg\relax
+      \edef\gsm@pathtl{\unexpanded\expandafter{\gsm@pathtl}%
+        \unexpanded\expandafter{\gsm@nodes} }%
+    \fi
+    \edef\gsm@pathtl{\unexpanded\expandafter{\gsm@pathtl}%
+      \csname gsm@pt@\the\gsm@i\endcsname}%
+  \repeat
+  \edef\gsm@do{\noexpand\draw[\gsm@edgestyle, gsm@user]
+    \unexpanded\expandafter{\gsm@pathtl};}%
+  \gsm@do
+  % remember the directions in which the edge leaves its two end nodes
+  \gsm@idof\gsm@A\gsm@recordangle{\gsm@id}{gsm@e@\gsm@en @a0}{gsm@e@\gsm@en @a1}{\gsm@en}%
+  \gsm@idof\gsm@B\gsm@recordangle{\gsm@id}{gsm@e@\gsm@en @b0}{gsm@e@\gsm@en @b1}{\gsm@en}}
+\newcount\gsm@edgeno
+
+% \gsm@edge{<kind>}{<tikz style>}{<options>}{<from>}{<to>}{<label>}
+\def\gsm@edge#1#2#3#4#5#6{%
+  \begingroup
+  \gsm@tikz{}\gsm@resetedge
+  \pgfqkeys{/gsm/edge}{#3}%
+  \def\gsm@A{(#4)}\def\gsm@B{(#5)}%
+  \def\gsm@labeltext{#6}\def\gsm@edgestyle{#2}%
+  \gsm@splitid{#4}\let\gsm@aid\gsm@id \gsm@gettype\gsm@aid\let\gsm@at\gsm@type
+  \gsm@splitid{#5}\let\gsm@bid\gsm@id \gsm@gettype\gsm@bid\let\gsm@bt\gsm@type
+  \gsm@checkedge{#1}%
+  \gsm@drawedge
+  \endgroup}
+
+\NewDocumentCommand\gsm@cmd@attribute{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{attribute}{gsm single}{#1}{#2}{#3}}}
+\NewDocumentCommand\gsm@cmd@multiattribute{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{multiattribute}{gsm multi}{#1}{#2}{#3}}}
+\NewDocumentCommand\gsm@cmd@component{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{component}{gsm component}{#1}{#2}{#3}}}
+\NewDocumentCommand\gsm@cmd@generalization{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{isa}{gsm generalization}{#1}{#2}{#3}}}
+\NewDocumentCommand\gsm@cmd@specialization{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{isa}{gsm specialization}{#1}{#2}{#3}}}
+\NewDocumentCommand\gsm@cmd@link{O{} m m}{%
+  \gsm@peekbrace{\gsm@edge{link}{gsm edge}{#1}{#2}{#3}}}
+
+% --- GSM rules for a single edge ----------------------------------------
+\def\gsm@ifknown#1{\gsm@ifeq{#1}{unknown}{\@secondoftwo}%
+  {\gsm@ifeq{#1}{point}{\@secondoftwo}{\@firstoftwo}}}
+\def\gsm@checkedge#1{%
+  \gsm@ifeq{#1}{isa}{%
+    \gsm@incr{isa@\gsm@aid}%
+    \gsm@ifknown{\gsm@at}{\gsm@ifeq{\gsm@at}{subtype}{}{%
+      \gsm@rule{IS-A edge starts at `\gsm@aid', which is not a subtype
+        (circle)}}}{}%
+    \gsm@ifknown{\gsm@bt}{\gsm@ifeq{\gsm@bt}{subtype}{}{\gsm@ifeq{\gsm@bt}{abstract}{}{%
+      \gsm@rule{IS-A edge ends at `\gsm@bid', which is neither a subtype
+        nor an abstract type}}}}{}%
+    \gsm@ifeq{\gsm@aid}{\gsm@bid}{\gsm@rule{cyclic IS-A edge at `\gsm@aid'}}{}}{}%
+  \gsm@ifeq{#1}{component}{%
+    \gsm@incr{comp@\gsm@aid}%
+    \gsm@ifknown{\gsm@at}{%
+      \gsm@ifeq{\gsm@at}{aggregation}{}{\gsm@ifeq{\gsm@at}{grouping}{}{%
+        \gsm@rule{component edge (dashed) starts at `\gsm@aid', which is
+          neither an aggregation nor a grouping}}}}{}}{}}
+
+% --- checks when the diagram is complete --------------------------------
+\def\gsm@finalchecks{%
+  \gsm@forlist{grouping}\gsm@check@grouping
+  \gsm@forlist{aggregation}\gsm@check@aggregation
+  \gsm@forlist{subtype}\gsm@check@subtype}
+\def\gsm@check@grouping#1{\ifnum\gsm@count{comp@#1}=1 \else
+  \gsm@rule{grouping `#1' needs exactly one component (dashed arrow),
+    found \gsm@count{comp@#1}}\fi}
+\def\gsm@check@aggregation#1{\ifnum\gsm@count{comp@#1}<2
+  \gsm@rule{aggregation `#1' has fewer than two components (dashed
+    arrows)}\fi}
+\def\gsm@check@subtype#1{\ifnum\gsm@count{isa@#1}<1
+  \gsm@rule{subtype `#1' has no IS-A edge to a supertype}\fi}
+
+% ====================================================================
+%  6.  NOTES, SUBDOMAINS, GRID
+% ====================================================================
+%% <shared:extras> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+\pgfkeys{
+  /gsm/note/.is family, /gsm/note,
+  .unknown/.code = {\gsm@forward{#1}},
+  color/.code    = {\gsm@addtikz{text=#1}},
+  colour/.forward to = /gsm/note/color,
+}
+\NewDocumentCommand\gsm@cmd@note{O{} d() m}{%
+  \gsm@tikz{}\pgfqkeys{/gsm/note}{#1}\gsm@usetikz
+  \IfNoValueTF{#2}{\node[gsm note, gsm@user] {#3};}%
+                  {\node[gsm note, gsm@user] at (#2) {#3};}}
+
+% \subdomain[color=blue!60, dotted, fill=blue!5]{Label}{(x1,y1) (x2,y2) ...}
+%   two points = opposite corners of a rectangle, more = polygon.
+%   The label box hangs from the first point (down and to the right).
+\pgfkeys{
+  /gsm/subdomain/.is family, /gsm/subdomain,
+  .unknown/.code   = {\gsm@forward{#1}},
+  color/.store in  = \gsm@sdcolor,
+  colour/.forward to = /gsm/subdomain/color,
+  dotted/.code     = {\gsm@ifeq{#1}{false}{\def\gsm@sddots{0}}{\def\gsm@sddots{1}}},
+  dotted/.default  = true,
+  fill/.store in   = \gsm@sdfill,
+}
+\NewDocumentCommand\gsm@cmd@subdomain{O{} m m}{%
+  \begingroup
+  \gsm@tikz{}\edef\gsm@sdcolor{\gsm@val{subdomain color}}%
+  \def\gsm@sddots{0}\let\gsm@sdfill\@empty
+  \pgfqkeys{/gsm/subdomain}{#1}\gsm@usetikz
+  \gsm@parsevia{#3}%
+  \ifnum\gsm@npts=2
+    \edef\gsm@sdpath{\csname gsm@pt@1\endcsname rectangle \csname gsm@pt@2\endcsname}%
+  \else
+    \def\gsm@sdpath{}\gsm@k=0
+    \loop\ifnum\gsm@k<\gsm@npts \advance\gsm@k by 1
+      \edef\gsm@sdpath{\gsm@sdpath\ifnum\gsm@k>1 -- \fi\csname gsm@pt@\the\gsm@k\endcsname}%
+    \repeat
+    \edef\gsm@sdpath{\gsm@sdpath -- cycle}%
+  \fi
+  \begin{pgfonlayer}{background}
+    \gsm@ifempty{\gsm@sdfill}{}{%
+      \edef\gsm@do{\noexpand\fill[\gsm@sdfill, gsm@user] \gsm@sdpath;}\gsm@do}%
+    \ifnum\gsm@sddots=1
+      \edef\gsm@do{\noexpand\fill[pattern=dots, pattern color=\gsm@sdcolor,
+        gsm@user] \gsm@sdpath;}\gsm@do
+    \fi
+    \edef\gsm@do{\noexpand\draw[draw=\gsm@sdcolor,
+      line width=\gsm@val{subdomain line width}, gsm@user] \gsm@sdpath;}\gsm@do
+    % label box with a tucked-in (chamfered) bottom-right corner
+    \edef\gsm@first{\csname gsm@pt@1\endcsname}%
+    \expandafter\gsm@sdlabelnode\expandafter{\gsm@first}{#2}{(gsm@sdlabel)}%
+    \draw[draw=\gsm@sdcolor, line width=\gsm@val{subdomain line width},
+          fill=white, line join=round]
+      (gsm@sdlabel.north west) -- (gsm@sdlabel.north east)
+      -- ($(gsm@sdlabel.south east)+(0,\gsm@val{subdomain tuck})$)
+      -- ($(gsm@sdlabel.south east)+(-\gsm@val{subdomain tuck},0)$)
+      -- (gsm@sdlabel.south west) -- cycle;
+    \expandafter\gsm@sdlabelnode\expandafter{\gsm@first}{#2}{}%
+  \end{pgfonlayer}
+  \endgroup}
+
+\def\gsm@sdlabelnode#1#2#3{%
+  \node[inner xsep=\gsm@val{subdomain label hpad},
+        inner ysep=\gsm@val{subdomain label vpad},
+        font=\gsm@val{subdomain label font}, text=\gsm@sdcolor,
+        anchor=north west] #3 at #1 {#2};}
+
+% \grid(x1,y1)(x2,y2): helper grid with coordinate labels (background)
+\NewDocumentCommand\gsm@cmd@grid{r() r()}{\gsm@grid{#1}{#2}}
+\def\gsm@grid#1#2{%
+  \begingroup
+  \gsm@gridcorners#1,#2\@nil
+  \begin{pgfonlayer}{background}
+    \draw[step=1, \gsm@val{grid color}, very thin]
+      (\gsm@gxa,\gsm@gya) grid (\gsm@gxb,\gsm@gyb);
+    \foreach \gsm@gx in {\gsm@gxa,...,\gsm@gxb}
+      \foreach \gsm@gy in {\gsm@gya,...,\gsm@gyb}
+        \node[font=\tiny, text=\gsm@val{grid label color}, inner sep=0pt]
+          at (\gsm@gx,\gsm@gy) {\gsm@gx,\gsm@gy};
+  \end{pgfonlayer}
+  \endgroup}
+\def\gsm@gridcorners#1,#2,#3,#4\@nil{%
+  \pgfmathtruncatemacro\gsm@gxa{min(#1,#3)}\pgfmathtruncatemacro\gsm@gxb{max(#1,#3)}%
+  \pgfmathtruncatemacro\gsm@gya{min(#2,#4)}\pgfmathtruncatemacro\gsm@gyb{max(#2,#4)}}
+% automatic grid over the whole picture (environment option "grid")
+\def\gsm@autogrid{%
+  \pgfpointanchor{current bounding box}{south west}\pgfgetlastxy\gsm@ax\gsm@ay
+  \pgfpointanchor{current bounding box}{north east}\pgfgetlastxy\gsm@bx\gsm@by
+  \pgfmathsetmacro\gsm@ax{floor(\gsm@ax/1cm)}\pgfmathsetmacro\gsm@ay{floor(\gsm@ay/1cm)}%
+  \pgfmathsetmacro\gsm@bx{ceil(\gsm@bx/1cm)}\pgfmathsetmacro\gsm@by{ceil(\gsm@by/1cm)}%
+  \gsm@grid{\gsm@ax,\gsm@ay}{\gsm@bx,\gsm@by}}
+
+%% </shared:extras>
+
+% ====================================================================
+%  7.  THE ENVIRONMENT AND FILE INPUT
+% ====================================================================
+% things to do at the end of each diagram: labels of aggregations and
+% groupings with "label pos=auto" go where there is the most room
+\def\gsm@atend{\gsm@forlist{conlabels}\gsm@placeconlabel}
+\def\gsm@placeconlabel#1{\gsm@bestdir{#1}%
+  \node[gsm constructor label, anchor=\gsm@oppanchor] at (#1.\gsm@bestpos)
+    {\csname\gsm@reg{conlabel@#1}\endcsname};}
+\def\gsm@localcommands{%
+  \let\abstract\gsm@cmd@abstract
+  \let\representable\gsm@cmd@representable
+  \let\subtype\gsm@cmd@subtype
+  \let\aggregation\gsm@cmd@aggregation
+  \let\grouping\gsm@cmd@grouping
+  \let\point\gsm@cmd@point
+  \let\attribute\gsm@cmd@attribute
+  \let\multiattribute\gsm@cmd@multiattribute
+  \let\component\gsm@cmd@component
+  \let\generalization\gsm@cmd@generalization
+  \let\specialization\gsm@cmd@specialization
+  \let\link\gsm@cmd@link
+  \let\note\gsm@cmd@note
+  \let\subdomain\gsm@cmd@subdomain
+  \let\grid\gsm@cmd@grid
+  \let\setup\gsm@setup}
+
+%% <shared:environment> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+\newsavebox\gsm@box
+% sans serif: also for a \normalfont in the fonts of labels.  It follows \gsmsetup, the
+% options and \setup, and only takes effect within a diagram.
+\def\gsm@applysans{%
+  \gsm@ifeq{\gsm@val{sans serif}}{true}%
+    {\let\familydefault\sfdefault\def\gsm@sanson{1}\fontfamily{\familydefault}\selectfont}%
+    {\ifx\gsm@sanson\@empty\else
+       \let\familydefault\gsm@origfamily\let\gsm@sanson\@empty
+       \fontfamily{\familydefault}\selectfont
+     \fi}}
+\def\gsm@setup#1{\gsmsetup{#1}\gsm@applysans}
+\pgfkeys{
+  /gsm/env/.is family, /gsm/env,
+  grid/.code       = {\gsm@ifeq{#1}{false}{\def\gsm@envgrid{0}}{\def\gsm@envgrid{1}}},
+  grid/.default    = true,
+  width/.store in  = \gsm@envwidth,
+  height/.store in = \gsm@envheight,
+  max width/.store in = \gsm@envmaxwidth,
+  max height/.store in = \gsm@envmaxheight,
+  scale/.store in  = \gsm@envscale,
+  checks/.code     = {\gsm@ifeq{#1}{false}{\def\gsm@envchecks{0}}{\def\gsm@envchecks{1}}},
+  checks/.default  = true,
+  % style keys (\gsmsetup) are accepted, everything else goes to TikZ
+  .unknown/.code   = {%
+    \pgfkeysifdefined{/gsm/\pgfkeyscurrentname/.@cmd}{\gsm@envpass{#1}}{%
+    \pgfkeysifdefined{/gsm/\pgfkeyscurrentname}{\gsm@envpass{#1}}%
+      {\gsm@forward{#1}}}},
+}
+\def\gsm@novalue{\pgfkeysnovalue}
+\def\gsm@envpass#1{\def\gsm@tmpv{#1}%
+  \ifx\gsm@tmpv\gsm@novalue
+    \edef\gsm@tmp{\noexpand\pgfqkeys{/gsm}{\pgfkeyscurrentname}}%
+  \else
+    \edef\gsm@tmp{\noexpand\pgfqkeys{/gsm}{\pgfkeyscurrentname={\unexpanded{#1}}}}%
+  \fi\gsm@tmp}
+\def\gsm@begin#1{%
+  \global\advance\gsm@diagramno by 1
+  \gsm@tikz{}\def\gsm@envgrid{0}\def\gsm@envchecks{1}%
+  \let\gsm@envwidth\@empty\let\gsm@envheight\@empty
+  \let\gsm@envmaxwidth\@empty\let\gsm@envmaxheight\@empty\let\gsm@envscale\@empty
+  \pgfqkeys{/gsm/env}{#1}%
+  \let\gsm@origfamily\familydefault\let\gsm@sanson\@empty
+  \gsm@applysans
+  \tikzset{gsm@env/.style/.expanded={\the\gsm@tikz}}%
+  \gsm@localcommands
+  \def\gsm@resize{0}%
+  \gsm@ifemptyx{\gsm@envwidth\gsm@envheight\gsm@envmaxwidth\gsm@envmaxheight\gsm@envscale}{}%
+    {\def\gsm@resize{1}}%
+  \ifnum\gsm@resize=1 \begin{lrbox}{\gsm@box}\fi
+  % "every path" is reset: some packages (e.g. figchild) make every \path
+  % visible, which would draw our invisible helper paths
+  \begin{tikzpicture}[every path/.style={}, gsm@env]}
+\def\gsm@end{%
+  \gsm@atend
+  \ifnum\gsm@envgrid=1 \gsm@autogrid\fi
+  \ifnum\gsm@envchecks=1 \gsm@finalchecks\fi
+  \end{tikzpicture}%
+  \ifnum\gsm@resize=1
+    \end{lrbox}%
+    \gsm@fitbox
+  \fi}
+\newdimen\gsm@dima
+% scale the finished picture: width/height set the size, "max width" and
+% "max height" only shrink (the aspect ratio is always kept)
+\def\gsm@fitbox{%
+  \dimen@=\ht\gsm@box \advance\dimen@ by \dp\gsm@box
+  \dimen@ii=\wd\gsm@box
+  \def\gsm@scale{1}%
+  \gsm@ifempty{\gsm@envscale}{}{\let\gsm@scale\gsm@envscale}%
+  \gsm@ifempty{\gsm@envmaxwidth}{}{\setlength\gsm@dima{\gsm@envmaxwidth}%
+    \pgfmathsetmacro\gsm@scale{min(\gsm@scale,\the\gsm@dima/\the\dimen@ii)}}%
+  \gsm@ifempty{\gsm@envmaxheight}{}{\setlength\gsm@dima{\gsm@envmaxheight}%
+    \pgfmathsetmacro\gsm@scale{min(\gsm@scale,\the\gsm@dima/\the\dimen@)}}%
+  \gsm@ifempty{\gsm@envwidth}{}{\setlength\gsm@dima{\gsm@envwidth}%
+    \pgfmathsetmacro\gsm@scale{\the\gsm@dima/\the\dimen@ii}}%
+  \gsm@ifempty{\gsm@envheight}{}{\setlength\gsm@dima{\gsm@envheight}%
+    \pgfmathsetmacro\gsm@scale{\the\gsm@dima/\the\dimen@}}%
+  \scalebox{\gsm@scale}{\usebox\gsm@box}}
+
+\NewDocumentEnvironment{gsmdiagram}{O{}}{\gsm@begin{#1}}{\gsm@end}
+
+% \inputgsmdiagram[<environment options>]{<file>}
+%   The file contains only the body of an gsmdiagram environment.
+\NewDocumentCommand\inputgsmdiagram{O{} m}{%
+  \IfFileExists{#2}%
+    {\begin{gsmdiagram}[#1]\input{#2}\end{gsmdiagram}}%
+    {\PackageError{gsmdiagram}{Diagram file `#2' not found}%
+      {Check the path; it is relative to the main document.}}}
+
+%% </shared:environment>
+
+\endinput

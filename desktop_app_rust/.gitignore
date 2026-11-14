@@ -1,0 +1,12 @@
+/target/
+/dist/
+/node_modules/
+/frontend/src/wasm/
+/src-tauri/gen/
+/frontend/node_modules/
+__pycache__/
+/.idea/
+/dist-web/
+/frontend/src/wasm-pdf/
+/test-results/
+/playwright-report/

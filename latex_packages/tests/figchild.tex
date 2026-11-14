@@ -1,0 +1,9 @@
+\documentclass[border=5pt]{standalone}
+\usepackage{figchild}
+\usepackage{gsmdiagram}
+\begin{document}
+\begin{gsmdiagram}
+\abstract{a}(0,0){A}\representable{b}(6,0){B}\attribute[bend left=90]{a}{b}{x}
+\end{gsmdiagram}
+\begin{tikzpicture}\path (0,0) -- (2,0);\path (0,-0.5) -- (2,-0.5) coordinate[pos=0] (q);\end{tikzpicture}
+\end{document}

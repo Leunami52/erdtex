@@ -1,0 +1,38 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}
+  % the dependency comes after the attributes, on purpose
+  \entity{o}(0,0){Owner}\attributes[anchor=north]{o}{*id, name}
+  \entity[weak]{id}(5,0){Id dep.}\attributes[anchor=north]{id}{*nr : int, other}
+  \relationship[dependency=Id]{ri}(2.5,0){has}
+  \link{o}{ri}{1}\link[double]{ri}{id}{n}
+  \entity[weak]{e}(5,-3){E dep.}\attributes[anchor=north]{e}{*nr, other}
+  \relationship[dependency=E]{re}(2.5,-3){has}
+  \link{o}{re}{1}\link[double]{re}{e}{n}
+  \entity[weak]{w}(5,-6){Weak rel.}\attributes[anchor=north]{w}{*nr, addr{*street, town}}
+  \relationship[weak]{rw}(2.5,-6){has}
+  \link{o}{rw}{1}\link[double]{rw}{w}{n}
+  \entity[weak]{alone}(0,-6){Alone}\attributes[anchor=north]{alone}{*nr}
+  \attribute[key, of=id]{k1}(8,0){chen id}
+  \attribute[key, of=e]{k2}(8,-3){chen E}
+  \attribute[key]{k3}(8,-6){chen link}\link{w}{k3}
+  \attribute[key, of=o]{k4}(-3,0){normal}
+  \attribute[composite, of=w]{c}(8,-8){comp}\attribute[key, of=c]{k5}(5,-8){part}
+\end{erdiagram}
+
+% a chain of weak entities: E2 depends on E alone, so its key is solid, although it owns E3 by Id
+\begin{erdiagram}
+  \entity{e1}(0,0){E1}\relationship[dependency=E]{a}(3,0){A}
+  \entity[weak]{e2}(6,0){solid}\attributes[anchor=north]{e2}{*nr}
+  \relationship[dependency=Id]{b}(9,0){B}
+  \entity[weak]{e3}(12,0){dashed}\attributes[anchor=north]{e3}{*nr}
+  \link{a}{e1}{1}\link[double]{a}{e2}{n}\link{b}{e2}{1}\link[double]{b}{e3}{n}
+\end{erdiagram}
+
+\begin{erdiagram}[show types]
+  \entity[weak]{id}(5,0){Types}\attributes[anchor=north]{id}{*nr : integer, other}
+  \entity{n}(0,0){Solid}\attributes[anchor=north]{n}{*nr : integer, other}
+  \attribute[key, type=string, of=id]{k}(9,0){name}
+\end{erdiagram}
+\end{document}

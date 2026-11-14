@@ -1,0 +1,21 @@
+% seminar.erd -- test diagram: Seminare in Räumen, mit Einheiten und Datentypen
+\setup{show types, sans serif=true}
+\entity{lehrveranstaltung}(-12.25,0.25){Seminar}
+\attributes[anchor=west]{lehrveranstaltung}{*Seminar-Nr : integer, *Lehrjahr : string, Titel : string, Std : integer}
+\entity{lva}(-10.75,3.5){Kurs-Art}
+\attributes{lva}{*Art-Kuerzel : string, Art-Name : string}
+\entity[weak]{modul}(-7.25,-2.5){Einheit}
+\attributes{modul}{*EinheitNr : integer, EinheitName : string}
+\entity{raum}(-5.5,0.25){Raum}
+\attributes{raum}{*Raum-Id : string, Name : string, Anz. Plätze : integer}
+\relationship{hat}(-11.75,2){hat}
+\relationship{ist}(-8.75,0.25){ist in}
+\attributes[anchor=north east]{ist}{*Datum : date, *Zeit-von : time, Zeit-bis : time}
+\relationship[dependency=Id]{hat2}(-10,-1.25){hat}
+\link{lva}{hat}{1}
+\link{hat}{lehrveranstaltung}{n}
+\link{lehrveranstaltung}{ist}{n}
+\link{ist}{raum}{n}
+\link{lehrveranstaltung}{hat2}{1}
+\link[double]{hat2}{modul}{n}
+

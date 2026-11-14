@@ -1,0 +1,46 @@
+% ferries-2.erd -- test diagram: ferries, captains, terminals and crossings
+\setup{sans serif}
+\setup{sans serif}
+\entity{city}(0,4.25){City}
+\attributes{city}{*City name, *State name}
+\entity{terminal}(-6.75,0){Terminal}
+\attributes[anchor=west]{terminal}{*Name, Berths count}
+\entity{ferry}(7,0){Ferry}
+\attributes{ferry}{*Ferry nbr, Load capacity, Description}
+\entity{captain}(0,-5){Captain}
+\attributes{captain}{*Captain nbr, Name, Date of birth}
+\relationship{is}(-5,3){is in}
+\relationship{responsible}(4.25,-2.75){responsible for}
+\attributes{responsible}{*Date begin, Date end}
+\link{is}{city}{1}
+\link{is}{terminal}{cn}
+\link{responsible}{captain}{1}
+\link{ferry}{responsible}{cn}
+\entity[weak]{crossing}(0,0){Crossing}
+\attributes[anchor=north]{crossing}{*Crossing ID}
+\relationship[dependency=E]{utilizes}(3.5,0){utilizes}
+\link[double]{crossing}{utilizes}{cn}
+\link{utilizes}{ferry}{1}
+\relationship[dependency=E]{departs}(-4,1){departs}
+\attributes[anchor=north]{departs}{Scheduled time, Actual time}
+\relationship[dependency=E]{arrives}(-4,-1.5){arrives}
+\attributes[anchor=north]{arrives}{Scheduled time, Actual time}
+\relationship[dependency=E]{pilots}(0,-2.5){pilots}
+\relationship[dependency=E]{has}(-6.75,-2.75){has}
+\entity[weak]{loading}(-6.75,-5.75){Berth}
+\attributes{loading}{*Berth nbr}
+\link{terminal}{departs}{1}
+\link[double]{departs}{crossing}{cn}
+\link{terminal}{arrives}{1}
+\link[double]{arrives}{crossing}{cn}
+\link[double]{crossing}{pilots}{cn}
+\link{pilots}{captain}{1}
+\link{terminal}{has}{1}
+\link[double]{loading}{has}{cn}
+\relationship{loads}(-4,-3.25){loads at}
+\relationship{unloads}(-2.75,-4.25){unloads at}
+\link{loads}{loading}{n}
+\link{loads}{crossing}{cn}
+\link{unloads}{loading}{n}
+\link{unloads}{crossing}{cn}
+

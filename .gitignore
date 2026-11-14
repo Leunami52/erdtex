@@ -1,0 +1,34 @@
+# --- LaTeX build artifacts ----------------------------------------------------
+*.aux
+*.log
+*.synctex.gz
+*.synctex(busy)
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.bcf
+*.blg
+*.idx
+*.ilg
+*.ind
+*.listing
+*.run.xml
+*.fls
+*.fdb_latexmk
+*.nav
+*.snm
+*.vrb
+*.tex.tmp.*
+latex_packages/tests/*.pdf
+
+# --- tooling --------------------------------------------------------------------
+# words the public tree check refuses but mustn't name itself (tools/public_tree.py)
+tools/public_tree_private.txt
+__pycache__/
+*.pyc
+
+# --- build output -----------------------------------------------------------------
+/build/
+/dist/

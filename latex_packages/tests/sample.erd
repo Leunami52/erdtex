@@ -1,0 +1,9 @@
+% sample ER diagram file (body of an erdiagram environment)
+\entity{building}(0,0){Building}
+\relationship[dependency=Id]{has}(3.5,0){has}
+
+\entity[weak]{room}(7,0){Room}
+\link{building}{has}{1}
+\link{has}{room}{m}
+\attributes[anchor=north]{building}{*buildingID, address}
+\attributes[anchor=north east]{room}{*roomNo, size}

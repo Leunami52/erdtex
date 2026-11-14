@@ -1,0 +1,24 @@
+\documentclass{article}
+% OT1 encoding on purpose: \textbar etc. are fragile there
+\usepackage{erdiagram,gsmdiagram}
+\begin{document}
+\begin{erdiagram}
+  \entity{a}(0,0){A \textbar\ \textbackslash}
+  \relationship[dependency=E]{r}(3,0){r \textbar}
+  \entity{b}(6,0){B}
+  \link[role={x \textbar}]{a}{r}{\textbar m\textbar}
+  \link[beside]{r}{b}{\textbar 1\textbar}
+  \isa{i}(0,-2){a}{c\textbar d}
+  \entity{c}(0,-4){C}\link{c}{i}
+  \attributes{a}{*\textbar k\textbar, v}
+  \note(3,-2){\textbar note\textbar}
+\end{erdiagram}
+\begin{gsmdiagram}
+  \abstract{p}(0,0){P \textbar}
+  \representable{n}(3,0){N}
+  \attribute{p}{n}{\textbar speaks\textbar}
+  \aggregation{g}(0,-2){\textbar agg\textbar}
+  \component{g}{n}{\textbar c}
+  \component{g}{p}
+\end{gsmdiagram}
+\end{document}

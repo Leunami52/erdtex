@@ -1,0 +1,22 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}
+  \entity{p}(0,0){Person}
+  \attributes[anchor=east]{p}{*PID, address{street, town : string, geo{lat, lon}}, \{email\},
+     {/age = {2026 - birth, 1}} : integer, birth : date}
+  \entity{q}(7,0){Down}
+  \attributes[anchor=south]{q}{*id, phone{area, number}}
+  \entity{r}(0,-5){Up}
+  \attributes[anchor=north]{r}{*id, phone{area, number}, last}
+  \entity{s}(7,-5){Left}
+  \attributes[anchor=west]{s}{*id, address{street, town}}
+  \entity{t}(0,-9){Old forms}
+  \attributes[anchor=east]{t}{{job, current}, \textit{salary}, $x_{i}$, ratio 1{:}2, /plain, *\{both\}, \{tel{area, nr}\}, placed@1.5/-2}
+\end{erdiagram}
+
+\begin{erdiagram}[show types]
+  \entity{p}(0,0){Person}
+  \attributes[anchor=east]{p}{*PID : integer, address{street : string, town}, \{email\} : string, /age : integer}
+\end{erdiagram}
+\end{document}

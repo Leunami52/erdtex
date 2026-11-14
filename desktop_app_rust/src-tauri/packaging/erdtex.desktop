@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=ERDTeX
+GenericName=ER and GSM Diagram Editor
+Comment=ER and GSM diagrams for LaTeX
+Exec={{exec}} %f
+Icon={{icon}}
+Terminal=false
+Categories=Office;Education;Graphics;
+MimeType=text/x-erdiagram;text/x-gsmdiagram;
+Keywords=ER;entity;relationship;GSM;database;LaTeX;TikZ;SQL;
+StartupWMClass=erdtex

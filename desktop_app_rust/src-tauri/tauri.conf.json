@@ -1,0 +1,92 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ERDTeX",
+  "mainBinaryName": "erdtex",
+  "version": "3.5.0",
+  "identifier": "local.erdtex",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ERDTeX",
+        "width": 1300,
+        "height": 850,
+        "dragDropEnabled": true,
+        "maximized": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "deb",
+      "rpm",
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "ERDTeX",
+    "copyright": "Copyright (c) 2026 Leunami52",
+    "category": "Education",
+    "shortDescription": "ER and GSM diagrams for LaTeX",
+    "longDescription": "Draw ER and GSM diagrams for the erdiagram / gsmdiagram LaTeX packages: an editor with the modelling rules, a LaTeX preview, the relational schema and SQL, and exports.",
+    "fileAssociations": [
+      {
+        "ext": [
+          "erd"
+        ],
+        "name": "ER diagram",
+        "description": "ER diagram (erdiagram)",
+        "mimeType": "text/x-erdiagram",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "gsmd"
+        ],
+        "name": "GSM diagram",
+        "description": "GSM diagram (gsmdiagram)",
+        "mimeType": "text/x-gsmdiagram",
+        "role": "Editor"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "recommends": [
+          "xdg-desktop-portal"
+        ],
+        "files": {
+          "/usr/share/mime/packages/erdtex.xml": "packaging/erdtex.xml"
+        },
+        "desktopTemplate": "packaging/erdtex.desktop"
+      },
+      "rpm": {
+        "recommends": [
+          "xdg-desktop-portal"
+        ],
+        "files": {
+          "/usr/share/mime/packages/erdtex.xml": "packaging/erdtex.xml"
+        },
+        "desktopTemplate": "packaging/erdtex.desktop"
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "startMenuFolder": "ERDTeX",
+        "installerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}

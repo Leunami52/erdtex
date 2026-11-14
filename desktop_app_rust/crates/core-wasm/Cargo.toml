@@ -1,0 +1,16 @@
+[package]
+name = "diagram-core-wasm"
+version = "0.1.0"
+description = "ERDTeX's core for the web page"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+diagram-core = { path = "../core", features = ["json"] }
+wasm-bindgen = "0.2"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

@@ -1,0 +1,44 @@
+% seedbank.erd -- test diagram: a seed bank: donors, seed swaps and seed packets
+\setup{sans serif}
+\entity{person}(0,13){Person}
+\attributes{person}{*SSno, Name, Postal address, Email address, Date of Birth}
+\entity{blood}(-4,8.75){Seed donor}
+\entity{medical}(4,8.75){Botanist}
+\entity{blood2}(4.25,-0.5){Seed packet}
+\attributes[anchor=south]{blood2}{*Serial nbr}
+\entity{laboratory}(2.25,3.75){Seed vault}
+\attributes[anchor=north]{laboratory}{*Vault ID}
+\entity{donation}(-3.5,2.5){Viability risk}
+\attributes[anchor=south]{donation}{*Risk ID, Name, Description}
+\entity{active}(0,6){Active donor}
+\attributes{active}{Seed type}
+\entity{potential}(0,8){Potential donor}
+\entity{blood3}(-7,1.75){Seed swap}
+\attributes[anchor=west]{blood3}{*Swap nbr, Date, Location, Zip code}
+\isa{isa}(0,11.25){person}{io}
+\link{isa}{blood}
+\link{isa}{medical}
+\relationship{fills}(4.75,6.75){fills}
+\relationship{invited}(-7.5,6.75){invited to}
+\relationship{attends}(-5.75,6){attends}
+\relationship{produces}(-1.25,-1.5){produces}
+\relationship{relates}(-3.5,4.75){has}
+\relationship{identifies}(0.25,1.5){identifies}
+\isa{isa2}(-3.5,7){blood}{cd}
+\link{isa2}{potential}
+\link{isa2}{active}
+\link{fills}{medical}{1}
+\link{active}{fills}{1}
+\link{fills}{blood2}{cn}
+\link{identifies}{blood2}{cn}
+\link{identifies}{donation}{cn}
+\link{identifies}{laboratory}{1}
+\link{relates}{donation}{cn}
+\link{relates}{active}{cn}
+\link{blood3}{produces}{1}
+\link{produces}{blood2}{cn}
+\link{invited}{blood3}{cn}
+\link{attends}{blood3}{cn}
+\link{invited}{blood}{cn}
+\link{attends}{blood}{cn}
+

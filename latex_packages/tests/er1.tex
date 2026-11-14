@@ -1,0 +1,56 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}
+  \entity{student}(0,0){Student\\Second line}
+  \entity{course}(8,0){Course}
+  \entity[weak]{assignment}(8,-4){Assignment}
+  \entity{class}(0,-4){Class}
+  \entity{undergrad}(-6,-2){Undergrad}
+  \entity[color=blue]{undergradlog}(-6,-4){Undergrad Log}
+  \entity{postgrad}(-3,-2){Postgrad}
+  \entity[weak, color=green]{weakc}(1.5,-6){Coloured weak\\entity type}
+
+  \relationship{enrolls}(4,0){Enrolls\\2nd line}
+  \partof{partof}(0,-2)
+  \relationship[weak]{has}(6,-2){has}
+  \relationship[dependency=Id]{has2}(8,-2){has}
+  \relationship[dependency=E]{has3}(10,-2){has}
+  \relationship[color=red]{relc}(4.5,-6){Colour rel}
+
+  \isa{isa}(-3,0){student}{id}
+
+  \link{student}{enrolls}{(0,n)}
+  \link{enrolls}{course}{(1,n)}
+  \link{course}{has}{1}
+  \link{has}{assignment}{N}
+  \link{course}{has2}{1}
+  \link{has2}{assignment}{N}
+  \link{course}{has3}{1}
+  \link{has3}{assignment}{N}
+  \link{student}{partof}{mc}
+  \link{partof}{class}{c}
+  \link{undergrad}{isa}
+  \link{postgrad}{isa}
+  \link{undergrad}{undergradlog}{Missing relationship!}
+
+  \attributes[anchor=north]{student}{*StudentID, Name, Email, DOB}
+  \attributes[anchor=east]{course}{*CourseID, Title, Credits}
+  \attributes{assignment}{*AssignmentNo, Title, DueDate, MaxScore}
+  \attributes[anchor=south east]{class}{all, eight, directions}
+  \attributes[anchor=north west]{class}{now, possible}
+  \attributes[anchor=south]{undergradlog}{Entities with colour, custom colour e.g. orange!20}
+  \attributes[anchor=north]{enrolls}{*Some number, Some other number}
+  \attributes[anchor=east]{relc}{Colour, versions}
+
+  \relationship{tutors}(-3,3){Tutors}
+  \link[role=tutor, bend left=25]{student}{tutors}{1}
+  \link[role=tutee, bend right=25, card side=below]{student}{tutors}{N}
+
+  \note(4,-3){Some constraint\\line 2}
+  \note[color=magenta](5,3){Arbitrary colour free text}
+
+  \subdomain[color=blue!30, dotted]{Students subdomain}{(-8,4) (2.5,-2.8)}
+  \subdomain[color=magenta!30]{Other group}{(9,-6) (12,-5.5) (12.5,-7) (8.5,-7)}
+\end{erdiagram}
+\end{document}

@@ -1,0 +1,6 @@
+% workshops.erd -- test diagram: trainees joining workshops
+\entity{student}(0,0){Trainee}
+\relationship{attends}(3.5,0){attends}
+\entity{course}(7,0){Workshop}
+\link{student}{attends}{cn}
+\link{attends}{course}{n}

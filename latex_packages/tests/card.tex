@@ -1,0 +1,15 @@
+\documentclass[border=5pt]{standalone}
+\usepackage{erdiagram}
+\makeatletter
+\let\orig@placecard\er@placecard
+\def\er@placecard#1{\orig@placecard{#1}\typeout{CARD #1: th=\er@th\space left=\er@left\space anc=\er@anc\space k=\the\er@k\space q=(\er@qx,\er@qy) box=(\er@ex,\er@ey)-(\er@fx,\er@fy) w=\er@w\space h=\er@h}}
+\makeatother
+\begin{document}
+\begin{erdiagram}
+  \entity{city}(4,0){City}
+  \relationship{isin}(1.5,-2){is in}
+  \link{city}{isin}{(1, 1)}
+  \entity{w}(0,-4){W}
+  \link{w}{isin}{(0, n)}
+\end{erdiagram}
+\end{document}

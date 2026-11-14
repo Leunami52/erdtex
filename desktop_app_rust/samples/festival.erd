@@ -1,0 +1,45 @@
+% festival.erd -- a sample ER diagram: a music festival
+\setup{show types}
+% --- people ---------------------------------------------------------
+\subdomain[color=blue!60]{People}{(-11.5,9.5) (1.75,-0.75)}
+\entity{person}(-4.5,6.5){Person}
+\attributes[anchor=east]{person}{*Person ID : integer, Name{First name, Last name}, Born : date, /Full name = {FirstName || ' ' || LastName} : string, \{Phone\}, +Email}
+\canbe{canbe}(-9,6.5){person}{io}
+\entity{volunteer}(-9,3.75){Volunteer}
+\attributes[anchor=south]{volunteer}{Shifts : integer}
+\link{volunteer}{canbe}
+\isa{isa}(-4.5,3.75){person}{cd}
+\entity{crew}(-7,1.25){Crew member}
+\attributes[anchor=west]{crew}{Role}
+\entity{musician}(-2,1.25){Musician}
+\attributes[anchor=north east]{musician}{Instrument}
+\link{crew}{isa}\link{musician}{isa}
+% --- bands ------------------------------------------------------------
+\relationship{plays}(3,1.25){plays in}
+\attributes[anchor=north]{plays}{Since : date}
+\entity{band}(7,1.25){Band}
+\attributes[anchor=east]{band}{*Band ID : integer, Name, +Website}
+\link{musician}{plays}{cn}\link{plays}{band}{n}
+\relationship{opens}(7,-1.75){opens for}
+\link[role=opener, bend right=35]{band}{opens}{cn}\link[role=headliner, bend left=35]{band}{opens}{cn}
+% --- the programme ------------------------------------------------------
+\subdomain[color=orange!80!black]{Programme}{(3,9.5) (14.5,4.75)}
+\entity{festival}(5,7.5){Festival}
+\attributes[anchor=north]{festival}{*Code : string, Name}
+\relationship[dependency=Id]{held}(8.5,7.5){held as}
+\entity[weak]{edition}(12,7.5){Edition}
+\attributes[anchor=north]{edition}{*Year : integer, Motto}
+\link{festival}{held}{1}\link[double]{held}{edition}{n}
+\relationship{performs}(10.5,3.25){performs}
+\attributes[anchor=east]{performs}{Start : time}
+\link{band}{performs}{cn}\link{edition}{performs}{n}
+% --- the grounds ----------------------------------------------------------
+\entity{venue}(4,-4.75){Venue}
+\attributes[anchor=west]{venue}{*Venue ID : integer, Address{Street, City}}
+\partof{part}(8,-4.75)
+\entity{stage}(12,-4.75){Stage}
+\attributes[anchor=east]{stage}{*Stage ID : integer, Capacity : integer}
+\link{venue}{part}{1}\link{part}{stage}{n}
+\point{p}(12,1.25)
+\link{stage}{p}{cn}\link{p}{performs}
+\note[anchor=west](-10.5,-3){A sample diagram: Help → Rule Books (Shift+F1) explains each part.}

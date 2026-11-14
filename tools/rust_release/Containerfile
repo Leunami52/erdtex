@@ -1,0 +1,20 @@
+# The Linux release build of the Rust version: Ubuntu 22.04, so that the program runs on every
+# distribution with glibc 2.35 or newer (README.md, "Decisions": build tools).  The toolchain versions
+# are those of the everyday builds.
+FROM docker.io/library/ubuntu:22.04
+ARG RUST=1.99.1
+ARG NODE=22.23.1
+ARG WASM_PACK=0.15.1
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential ca-certificates curl file pkg-config xz-utils git \
+      libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://nodejs.org/dist/v${NODE}/node-v${NODE}-linux-x64.tar.xz | tar -xJ -C /opt \
+    && ln -s /opt/node-v${NODE}-linux-x64/bin/* /usr/local/bin/
+ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
+RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain ${RUST} \
+      --target wasm32-unknown-unknown \
+    && cargo install wasm-pack --version ${WASM_PACK} --locked \
+    && rm -rf /opt/cargo/registry
+WORKDIR /src/desktop_app_rust

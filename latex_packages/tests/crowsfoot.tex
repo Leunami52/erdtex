@@ -1,0 +1,24 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}[card symbols=crowsfoot]
+  \entity{a}(0,0){Halter}
+  \relationship{r}(4,0){besitzt}
+  \entity{b}(8,0){Hund}
+  \link{a}{r}{1}\link{r}{b}{n}
+  \entity{c}(0,-3){Labor}
+  \relationship{s}(4,-3){leitet}
+  \entity{d}(8,-3){Forscher}
+  \link{c}{s}{c}\link{s}{d}{cn}
+  % diagonal, curved, old forms, double-lined, and labels that stay labels
+  \entity{e}(0,-7){E}
+  \relationship{t}(4,-5.5){t}
+  \entity{f}(8,-7){F}
+  \link{e}{t}{m}\link[bend=20]{t}{f}{mc}
+  \relationship[weak]{u}(4,-8){u}
+  \entity[weak]{g}(8,-9.5){G}
+  \link{e}{u}{1}\link[double]{u}{g}{n}
+  \relationship{v}(0,-10){v}
+  \link{e}{v}{(3,*)}
+\end{erdiagram}
+\end{document}

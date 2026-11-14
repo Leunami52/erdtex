@@ -1,0 +1,411 @@
+% Finds the package and the example diagrams, also when compiled directly in an editor:
+\makeatletter\def\input@path{{../}{../../desktop_app_rust/samples/}}\makeatother
+\documentclass[10pt,a4paper]{article}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{gsmdiagram}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{listings}
+\usepackage{booktabs,array,longtable}
+\usepackage{hyperref}
+\hypersetup{colorlinks, linkcolor=blue!50!black, urlcolor=blue!50!black}
+
+\lstdefinestyle{gsmd}{
+  language=[LaTeX]TeX, basicstyle=\ttfamily\footnotesize, columns=fullflexible,
+  keepspaces, commentstyle=\color{gray}\itshape,
+  texcsstyle=*\color{blue!60!black},
+  moretexcs={abstract,representable,subtype,aggregation,grouping,point,
+    attribute,multiattribute,component,generalization,specialization,link,
+    note,subdomain,grid,setup,inputgsmdiagram,gsmsetup},
+}
+\lstset{style=gsmd}
+\newtcblisting{example}{enhanced, listing side text, colback=white,
+  colframe=black!25, boxrule=0.5pt, arc=1pt, lefthand width=0.5\linewidth,
+  listing options={style=gsmd}, halign lower=center, valign lower=center,
+  before skip=6pt, after skip=8pt}
+\newcommand\cs[1]{\texttt{\textbackslash#1}}
+\newcommand\meta[1]{\textlangle\textit{#1}\textrangle}
+\newcommand\opt[1]{\texttt{[}#1\texttt{]}}
+
+\title{\textbf{gsmdiagram} --- GSM diagrams for \LaTeX\\[2pt]
+  \large Generic Semantic Model, version 3.0.2}
+\author{Leunami52}
+\date{2026-11-07}
+
+\begin{document}
+\maketitle
+\begin{center}\small Distributed under the \LaTeX\ Project Public License, version 1.3c or later.\end{center}
+\tableofcontents
+
+% =====================================================================
+\section{Introduction}
+
+\texttt{gsmdiagram} draws diagrams of the \emph{Generic Semantic Model}
+in the usual style (triangles for abstract types, rounded boxes for
+representable ones, circles for subtypes). It is
+the sister package of \texttt{erdiagram} and works exactly the same way:
+a diagram is a list of short, declarative commands inside a
+\texttt{gsmdiagram} environment, and the commands exist only inside that
+environment.
+
+\paragraph{Installation.} Copy \texttt{gsmdiagram.sty} next to your
+document and load it with \verb|\usepackage{gsmdiagram}|. Only TikZ is
+needed. The package may be loaded together with \texttt{erdiagram}.
+Public names: the environment \texttt{gsmdiagram}, \cs{inputgsmdiagram}
+and \cs{gsmsetup}.
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{person}(0,0){Person}
+  \representable{pname}(-1.2,2){PName}
+  \attribute{person}{pname}{has name}
+  \abstract{company}(5,0){Company}
+  \attribute{person}{company}{works for}
+  \subtype{tourist}(0,-2.4){Tourist}
+  \specialization{tourist}{person}
+\end{gsmdiagram}
+\end{example}
+
+Node commands have the form
+\cs{type}\opt{\meta{options}}\verb|{|\meta{id}\verb|}(|\meta{x,y}\verb|){|\meta{label}\verb|}|;
+edge commands have the form
+\cs{kind}\opt{\meta{options}}\verb|{|\meta{from}\verb|}{|\meta{to}\verb|}{|\meta{label}\verb|}|,
+where the label is optional. Options the package does not know are
+passed to TikZ.
+
+% =====================================================================
+\section{New in version 3.0}
+
+Diagrams from earlier versions keep compiling, and look the same unless they use \texttt{scale}:
+
+\begin{itemize}
+\item \texttt{scale=0.5} scales the finished diagram, with its nodes, text and lines. Before, it went
+  to TikZ, which moved the positions but not the nodes, so they overlapped.
+\item \texttt{sans serif} sets all text of a diagram in the document's sans-serif font.
+\end{itemize}
+
+% =====================================================================
+\section{The environment and external files}
+
+\verb|\begin{gsmdiagram}[|\meta{options}\verb|] ... \end{gsmdiagram}| accepts the same
+options as \texttt{erdiagram}: \texttt{grid} (labelled helper grid),
+\texttt{scale} (it scales the whole diagram), \texttt{width}, \texttt{height}, \texttt{max width}, \texttt{max height},
+\texttt{checks=false}, any style key of \cs{gsmsetup}, and any
+\texttt{tikzpicture} option. Inside, \cs{setup}\verb|{...}| changes style
+keys locally and plain TikZ commands may be mixed in.
+
+\verb|\inputgsmdiagram[|\meta{options}\verb|]{|\meta{file}\verb|}| typesets a diagram stored
+in a file that contains only the \emph{body} of a \texttt{gsmdiagram}
+environment (recommended extension: \texttt{.gsmd}). This is the format
+written by the desktop editor. Paths are relative to the main document;
+with \texttt{subfiles} use \verb|\inputgsmdiagram{\subfix{file.gsmd}}|.
+For files the editor should read back: one command per line, absolute
+positions \verb|(x,y)|, options as \texttt{key=value}.
+
+% =====================================================================
+\section{Types}
+
+\begin{center}
+\verb|\abstract[...]{id}(x,y){Label}|\qquad
+\verb|\representable[...]{id}(x,y){Label}|\qquad
+\verb|\subtype[...]{id}(x,y){Label}|
+\end{center}
+
+Abstract types are triangles, representable types rounded boxes,
+subtypes circles. Option \texttt{color=}\meta{colour} sets the
+background (a plain colour name is used as a light tint, \texttt{blue}
+$\to$ \texttt{blue!20}); TikZ options such as \texttt{minimum width} or
+positioning keys work as well. Use \verb|\\| for line breaks.
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{a}(0,0){Person}
+  \abstract[color=blue]{b}(3.2,0){Vehicle}
+  \representable{c}(0,-1.6){Name}
+  \representable[color=yellow]{d}(3.2,-1.6)
+    {Zip code}
+  \subtype{e}(0,-3.4){Job}
+  \subtype[color=green]{f}(3.2,-3.4)
+    {Traveling\\salesman}
+\end{gsmdiagram}
+\end{example}
+
+% =====================================================================
+\section{Type constructors: aggregation and grouping}
+
+\begin{center}
+\verb|\aggregation[...]{id}(x,y){Label}|\qquad
+\verb|\grouping[...]{id}(x,y){Label}|
+\end{center}
+
+An aggregation (crossed circle) defines a class composed of other
+classes, a grouping (crossed circle with a bar) a set of objects of one
+type. The label is printed in red next to the symbol. With the default
+\texttt{label pos=auto} it is put where there is the most room
+(preferring the right-hand side); \texttt{label pos=north},
+\texttt{north east}, \dots\ fix the position. The components are
+connected with \cs{component} (dashed arrows).
+
+\begin{example}
+\begin{gsmdiagram}
+  \grouping{persons}(0,1.2){Persons}
+  \aggregation{person}(0,0){Person}
+  \component{persons}{person}
+  \representable{dob}(2.6,-1){Date of birth}
+  \aggregation{name}(-2,-1.2){Name}
+  \component{person}{name}
+  \component{person}{dob}
+  \representable{first}(-2.9,-2.6){First}
+  \representable{last}(-1.1,-2.6){Last}
+  \component{name}{first}\component{name}{last}
+\end{gsmdiagram}
+\end{example}
+
+% =====================================================================
+\section{Edges}
+
+\begin{longtable}{@{}>{\ttfamily}p{5cm}p{10.8cm}@{}}
+\toprule
+\normalfont\textbf{Command} & \textbf{Meaning}\\\midrule
+\textbackslash attribute & single-valued attribute: arrow\\
+\textbackslash multiattribute & multi-valued attribute: double arrow head\\
+\textbackslash component & element of a constructed type (from an
+  aggregation or grouping): dashed arrow\\
+\textbackslash generalization & disjoint IS-A (generalisation): thick
+  arrow from the subtype to the supertype\\
+\textbackslash specialization & overlapping IS-A (specialisation):
+  double-line arrow from the subtype to the supertype\\
+\textbackslash link & plain line without an arrow\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{p}(0,0){Person}
+  \representable{n}(4,1.2){PName}
+  \representable{l}(4,-0.6){Language}
+  \attribute{p}{n}{has name}
+  \multiattribute{p}{l}{speaks}
+  \subtype{e}(-1.6,-2.4){Employee}
+  \subtype{s}(1.6,-2.4){Student}
+  \specialization{e}{p}\specialization{s}{p}
+  \abstract{v}(0,-4.6){Vehicle}
+  \subtype{c}(-1.6,-6.6){Car}
+  \subtype{b}(1.6,-6.6){Boat}
+  \generalization{c}{v}\generalization{b}{v}
+\end{gsmdiagram}
+\end{example}
+
+\subsection{Edge options}
+
+\begin{longtable}{@{}>{\ttfamily}p{4cm}p{11.8cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+label side=\meta{side} & \texttt{auto} (default: above flat edges, right
+  of steep ones), \texttt{above}, \texttt{below}, \texttt{left},
+  \texttt{right}\\
+label pos=\meta{fraction} & position along the edge (default 0.5)\\
+label segment=\meta{n} & with way points: the segment that carries the
+  label (default: the middle one)\\
+sloped / horizontal & labels are rotated along their edge by default;
+  \texttt{horizontal} prints this one label horizontally
+  (\texttt{label sloped=false} does this for a whole diagram)\\
+label color=\meta{colour} & colour of the label, e.g.\ for conditions\\
+label style=\{\meta{TikZ}\} & any further options for the label\\
+bend=\meta{angle} & curved edge; positive bends to the left\\
+via=\{(x,y) (x,y) \dots\} & route through way points\\
+ortho=-| \textrm{or} |- & right-angled edge\\
+\meta{TikZ option} & e.g.\ \texttt{bend left=20}, \texttt{out=90, in=0},
+  \texttt{looseness=2}\\
+\bottomrule
+\end{longtable}
+
+Labels follow their edge by default; \texttt{horizontal} switches a
+single label, \texttt{label sloped=false} a whole diagram:
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{p}(0,0){Person}
+  \representable{a}(3.5,1.6){Address}
+  \representable{b}(3.5,-1.6){Birthday}
+  \attribute{p}{a}{lives at}
+  \attribute[horizontal]{p}{b}{born on}
+\end{gsmdiagram}
+\end{example}
+
+\begin{example}
+\begin{gsmdiagram}[label sloped=false]
+  \abstract{p}(0,0){Person}
+  \representable{a}(3.5,1.6){Address}
+  \representable{b}(3.5,-1.6){Birthday}
+  \attribute{p}{a}{lives at}
+  \attribute{p}{b}{born on}
+\end{gsmdiagram}
+\end{example}
+
+Edges may start or end at a particular anchor of a node
+(\verb|person.east|, \verb|person.60|), and \cs{point}\verb|{id}(x,y)|
+creates an invisible junction, e.g.\ to merge two edges:
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{p}(0,0){Person}
+  \abstract{e}(5,0){Enterprise}
+  \attribute{p}{e}{works for}
+  \attribute[bend=-25, label side=above]{e}{p}
+    {works for$^{-1}$}
+  \point{j}(2.5,-1.6)
+  \link[ortho=|-]{p.south}{j}
+  \link[ortho=|-]{e.south}{j}
+  \representable{n}(2.5,-3){Number}
+  \attribute[label side=right, horizontal]{j}{n}
+    {year(s) of employment}
+\end{gsmdiagram}
+\end{example}
+
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{p}(0,0){Person}
+  \representable{d}(3.4,0){Date of birth}
+  \attribute{p}{d}
+  \representable{a}(3.4,-2){Age}
+  \attribute[label side=right, horizontal,
+    label color=red!70!black,
+    label style={font=\scriptsize}]{d}{a}
+    {[year(today) $-$ year(d)]}
+  \subtype{t}(0,-3){Teenager}
+  \specialization[label side=right,
+    label color=red!70!black]{t}{p}{[age $<$ 20]}
+\end{gsmdiagram}
+\end{example}
+
+% =====================================================================
+\section{Notes, subdomains and the grid}
+
+These work exactly as in \texttt{erdiagram}:
+\verb|\note[|\meta{options}\verb|](x,y){text}| (red free text; \texttt{color=} changes
+the colour), \verb|\subdomain[color=..., dotted, fill=...]{Label}{(x,y) (x,y) ...}| (a
+frame behind the diagram, two points give a rectangle, more points a
+polygon, the label hangs from the first point) and
+\verb|\grid(x1,y1)(x2,y2)|.
+
+\begin{example}
+\begin{gsmdiagram}
+  \subdomain[color=red!60, dotted]{People}
+    {(-1.8,1) (1.8,-2.3)}
+  \abstract{p}(0,0){Person}
+  \subtype{t}(0,-1.5){Tourist}
+  \specialization{t}{p}
+  \note[color=blue!70!black](1.1,-1.5){[derived]}
+  \note[anchor=west](2.1,-0.6)
+    {Persons travel\\at least once a year}
+\end{gsmdiagram}
+\end{example}
+
+% =====================================================================
+\section{Rule checks}\label{sec:rules}
+
+Violations of the GSM structure rules are reported as warnings
+(\texttt{Package gsmdiagram Warning: GSM rule: \dots}); switch them off
+with \verb|\gsmsetup{rule warnings=false}| or the environment option
+\texttt{checks=false}.
+
+\begin{itemize}
+\item an IS-A edge (\cs{generalization}, \cs{specialization}) that does
+  not start at a subtype, or that ends at something other than a subtype
+  or an abstract type; an IS-A edge from a node to itself;
+\item a component edge that does not start at an aggregation or grouping;
+\item a grouping without exactly one component;
+\item an aggregation with fewer than two components;
+\item a subtype without any IS-A edge to a supertype.
+\end{itemize}
+
+The desktop editor checks all of this and more, such as cycles of IS-A edges and the common
+root of a subtype's IS-A paths (see its README).
+
+% =====================================================================
+\section{Style parameters}
+
+Set globally with \cs{gsmsetup}, per diagram as environment options or
+inside a diagram with \cs{setup}.
+
+\begin{longtable}{@{}>{\ttfamily}p{5.6cm}>{\ttfamily}p{3.6cm}p{6.4cm}@{}}
+\toprule
+\normalfont\textbf{Key} & \normalfont\textbf{Default} & \textbf{Meaning}\\\midrule
+\endhead
+abstract fill / draw / text & gray!15 / black / black & triangles\\
+abstract line width / font & 0.6pt / \textbackslash bfseries & \\
+abstract minimum width / height & 2.6cm / 0.6cm & \\
+abstract apex angle & 90 & \\
+repr fill / draw / text & gray!15 / black / black & rounded boxes\\
+repr line width / font & 0.6pt / \textbackslash bfseries & \\
+repr minimum width / height & 2.4cm / 0.9cm & \\
+repr corner radius & 6pt & \\
+sub fill / draw / text & gray!15 / black / black & circles\\
+sub line width / font & 0.6pt / \textbackslash bfseries & \\
+sub minimum size & 1.4cm & \\
+aggr fill / draw & white / black & crossed circles\\
+aggr line width / size & 0.6pt / 0.8cm & \\
+aggr label color / font & red!70!black / \textbackslash small & \\
+aggr label pos & auto & \\
+edge color / line width & black / 0.5pt & \\
+arrow length / width & 6pt / 4pt & arrow heads\\
+generalization line width & 2pt & thick IS-A arrows\\
+specialization double distance & 1.5pt & double IS-A arrows\\
+label font / color & \textbackslash footnotesize \textbackslash itshape / black & edge labels\\
+label pos / side / sloped & 0.5 / auto / true & \\
+note color / font & red!70!black / \textbackslash small & \\
+subdomain \dots & & as in \texttt{erdiagram}\\
+rule warnings & true & \\
+sans serif & false & all text of the diagram in the document's sans-serif font\\
+grid color / grid label color & gray!25 / gray!55 & \\
+\bottomrule
+\end{longtable}
+
+{\raggedright TikZ styles for deeper changes: \texttt{gsm abstract}, \texttt{gsm repr},
+\texttt{gsm subtype}, \texttt{gsm constructor},
+\texttt{gsm constructor label}, \texttt{gsm label}, \texttt{gsm edge},
+\texttt{gsm single}, \texttt{gsm multi}, \texttt{gsm component},
+\texttt{gsm generalization}, \texttt{gsm specialization},
+\texttt{gsm note}.\par}
+
+% =====================================================================
+\section{A complete example: a music festival}
+
+The sample diagram of ERDTeX (\emph{File $\to$ Open Example}): abstract and
+representable types, subtypes with generalizations and a specialization, an
+aggregation and a grouping, single- and multi-valued attributes, a derived one,
+and two attribute lines in opposite directions.
+
+\noindent\inputgsmdiagram[width=\linewidth]{festival.gsmd}
+
+\lstinputlisting[basicstyle=\ttfamily\scriptsize, frame=single,
+  rulecolor=\color{black!25}]{festival.gsmd}
+
+% =====================================================================
+\section{Known limitations}
+
+\begin{enumerate}
+\item \textbf{Edge labels do not avoid other elements.} Labels are
+  placed beside their edge, but collisions with other edges or nodes
+  are not detected; adjust \texttt{label side}, \texttt{label pos} or
+  the layout.
+\begin{example}
+\begin{gsmdiagram}
+  \abstract{a}(0,0){A}
+  \representable{b}(4,0){B}
+  \representable{c}(4,-1){C}
+  \attribute{a}{b}{a long label}
+  \attribute{a}{c}{another long label}
+\end{gsmdiagram}
+\end{example}
+\item \textbf{Arrow heads on double lines.} With strongly curved
+  specialisation edges the double line may look uneven near the head.
+\item \textbf{Cycles} of IS-A edges and the ``common root'' rule are not
+  checked here (only an edge from a node to itself is reported); the desktop editor does check them.
+\item \textbf{Way points} in \texttt{via} must be plain coordinates or
+  node anchors.
+\end{enumerate}
+
+\end{document}

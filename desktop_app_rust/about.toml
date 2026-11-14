@@ -1,0 +1,15 @@
+# cargo-about (tools/licenses.sh): the licences the program's crates may have
+# what only the tests use doesn't ship
+ignore-dev-dependencies = true
+accepted = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "BSL-1.0",
+    "Unicode-3.0",
+    "MPL-2.0",
+]

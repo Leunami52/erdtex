@@ -1,0 +1,21 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+% everything the desktop editor stores for the relational model compiles unchanged
+\begin{erdiagram}
+  \setup{rm rules=db1}
+  \entity[rm name=Personen]{p}(0,0){Person}
+  \attributes[anchor=north]{p}{*PID : integer}
+  \isa[rm=1, rm category=relation, rm name=job]{i}(0,-2){p}{cd}
+  \entity{s}(0,-4){Sub}\link{s}{i}
+  \relationship[rm=table, rm key={p,s}]{r}(4,0){r}
+  \relationship[rm=fold, rm key=q]{r2}(4,-2){r2}
+  \relationship[rm=fk]{r3}(4,-4){r3}
+  \link{p}{r}{(1,*)}\link{r}{s}{(0,1)}
+  \link[role=Boss]{p}{r2}{(·,*)}\link{r2}{s}{[3,4]}
+  \link{p}{r3}{1}\link{r3}{s}{cn}
+\end{erdiagram}
+\begin{erdiagram}[rm rules=cdm]
+  \entity{p}(0,0){Person}
+\end{erdiagram}
+\end{document}

@@ -1,0 +1,24 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}
+  \entity[rm name=Personen]{p}(0,0){Person}
+  \attributes[anchor=north]{p}{*PID : integer, name:string, date of birth : date, price : {decimal(8,2)}, ratio 1{:}2, {a, b}}
+  \attribute[key, type=integer]{a}(4,1){no}
+  \link{a}{p}
+  \isa[rm=1, rm category=relation, rm name=job]{i}(0,-2){p}{cd}
+  \relationship[rm=table, rm key={p}]{r}(4,-1){r}
+\end{erdiagram}
+
+\begin{erdiagram}[show types]
+  \entity{p}(0,0){Person}
+  \attributes[anchor=north]{p}{*PID : integer, name:string, date of birth : date, price : {decimal(8,2)}, ratio 1{:}2, {a, b}}
+  \attribute[key, type=integer]{a}(4,1){no}
+  \link{a}{p}
+\end{erdiagram}
+
+\begin{erdiagram}[show types, type font=\itshape\color{gray}, type sep={\,:\,}]
+  \entity{p}(0,0){Person}
+  \attributes[anchor=north]{p}{*PID : integer, name}
+\end{erdiagram}
+\end{document}

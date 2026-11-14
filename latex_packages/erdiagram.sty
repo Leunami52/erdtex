@@ -1,0 +1,1880 @@
+% erdiagram.sty -- ER diagrams with TikZ
+%
+% Copyright (C) 2026 Leunami52
+%
+% This work may be distributed and/or modified under the conditions of the
+% LaTeX Project Public License, either version 1.3c of this license or (at
+% your option) any later version. The latest version of this license is in
+%     https://www.latex-project.org/lppl.txt
+% and version 1.3c or later is part of all distributions of LaTeX version
+% 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% The Current Maintainer of this work is Leunami52.
+% This work consists of the files erdiagram.sty, gsmdiagram.sty and their
+% manuals (erdiagram-manual.tex, gsmdiagram-manual.tex).
+%
+% Copy this single file next to your document and write
+%     \usepackage{erdiagram}
+%
+% Public interface (the only names defined globally):
+%   environment   erdiagram            \begin{erdiagram}[<options>] ... \end{erdiagram}
+%   command       \inputerdiagram      \inputerdiagram[<options>]{<file>}
+%   command       \ersetup             \ersetup{<style keys>}
+%   environment   relationalschema     relational schemas, as ERDTeX writes them
+%
+% Inside an erdiagram environment (and only there) the following short
+% commands are available.  Optional (x,y) positions use TikZ coordinates
+% (default unit: cm).  [..] = optional key/value options.
+%
+%   \entity[opts]{id}(x,y){Label}           entity type (rectangle)
+%   \relationship[opts]{id}(x,y){Label}     relationship type (diamond)
+%   \isa[opts]{id}(x,y){supertype}{cd}      generalisation (IS_A) + arrow
+%   \canbe[opts]{id}(x,y){supertype}{cd}    specialisation (CAN_BE) + arrow
+%   \partof[opts]{id}(x,y)                  aggregation (PART_OF diamond)
+%   \attribute[opts]{id}(x,y){Label}        Chen-style attribute (ellipse)
+%   \attributes[opts]{node}{*Key, Attr, ..} attribute tree attached to node
+%   \link[opts]{from}{to}{cardinality}      edge (cardinality is optional)
+%   \point{id}(x,y)                         invisible junction / waypoint
+%   \note[opts](x,y){text}                  free text annotation
+%   \subdomain[opts]{Label}{(x,y) (x,y) ..} subdomain frame (background)
+%   \grid(x1,y1)(x2,y2)                     helper grid with coordinates
+%   \setup{style keys}                      like \ersetup, local to diagram
+%
+% Any option a command does not know is handed to TikZ unchanged, so e.g.
+% \entity[right=2cm of a]{b}{B} or \link[bend left=20]{a}{r} work too.
+%
+% See erdiagram-manual.pdf for the full documentation.
+
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{erdiagram}[2026/11/07 v3.0.2 ER diagrams]
+
+\RequirePackage{tikz}
+\usetikzlibrary{calc,positioning,shapes.geometric,arrows.meta,backgrounds,patterns}
+
+% ====================================================================
+%  1.  STYLE PARAMETERS   (change with \ersetup{key=value, ...})
+% ====================================================================
+\pgfkeys{
+  /er/.is family, /er,
+  % -- entity types ---------------------------------------------------
+  entity fill/.initial           = gray!15,
+  entity draw/.initial           = black,
+  entity line width/.initial     = 0.6pt,
+  entity text/.initial           = black,
+  entity font/.initial           = \bfseries,
+  entity minimum width/.initial  = 2.8cm,
+  entity minimum height/.initial = 1cm,
+  entity inner sep/.initial      = 5pt,
+  weak double distance/.initial  = 2pt,   % gap of double borders
+  % -- relationship types ---------------------------------------------
+  rel fill/.initial              = white,
+  rel draw/.initial              = black,
+  rel line width/.initial        = 0.6pt,
+  rel text/.initial              = black,
+  rel font/.initial              = \itshape,
+  rel minimum width/.initial     = 2cm,
+  rel minimum height/.initial    = 1.4cm,
+  rel aspect/.initial            = 1.6,
+  dependency color/.initial      = red!70!black,  % the "E" / "Id" mark
+  dependency font/.initial       = \normalfont\bfseries,
+  isa label/.initial             = \er@lang{IS\_A}{IST\_EIN*E},
+  canbe label/.initial           = \er@lang{CAN\_BE}{KANN\_SEIN},
+  partof label/.initial          = \er@lang{PART\_OF}{TEIL\_VON},
+  isa shape/.initial             = hexagon, % or diamond (IS_A and CAN_BE)
+  isa minimum width/.initial     = 2cm,
+  isa minimum height/.initial    = 1cm,
+  isa slant/.initial             = 0.5,     % top shorter by slant x half height on each side
+  constraint style/.initial      = letters, % or words: cd -> complete, disjoint
+  constraint color/.initial      = red!70!black,  % cd, co, id, io
+  constraint font/.initial       = \normalfont\small,
+  constraint pos/.initial        = inside,        % or auto, east, north, ...
+  % -- attribute trees ------------------------------------------------
+  attr font/.initial             = \small,
+  attr text/.initial             = black,
+  attr spread/.initial           = 0.35cm,  % distance between attributes
+  attr gap/.initial              = {},      % trunk: node -> first attr (empty = spread)
+  attr tick/.initial             = 0.3cm,   % length of the small ticks
+  attr indent/.initial           = 3pt,     % the parts of a composite attribute
+  attribute style/.initial       = compact, % or chen: lists drawn as ovals
+  chen dist/.initial             = 0.9cm,   % from a node to the ovals of its list
+  attr stem/.initial             = 0.3cm,   % bar layout: node -> bar
+  % -- data types (attribute "name : type", \attribute[type=...]) ------
+  show types/.code               = {\def\er@showtypes{#1}}, % print data types
+  show types/.default            = true,
+  type sep/.initial              = {:\ },   % between name and type
+  type font/.initial             = {},      % font of the type
+  % -- Chen-style attribute ellipses ----------------------------------
+  attribute fill/.initial        = white,
+  attribute draw/.initial        = black,
+  attribute minimum width/.initial  = 1.2cm,
+  attribute minimum height/.initial = 0.7cm,
+  % -- cardinalities --------------------------------------------------
+  card font/.initial             = \footnotesize,
+  card text/.initial             = black,
+  card placement/.initial        = inline,  % inline (mid-edge) | beside (near the entity)
+  card dist/.initial             = 0.3cm,   % distance from the entity border
+  card side/.initial             = auto,    % auto|above|below|left|right
+  card notation/.initial         = n,       % n | minmax: read by the desktop editor
+  card symbols/.initial          = labels,  % labels | crowsfoot (for 1, c, n, cn)
+  crow length/.initial           = 6pt,     % crow's foot: from the border to the apex
+  crow width/.initial            = 3.5pt,   % crow's foot: half its width, half a bar
+  % -- role labels ----------------------------------------------------
+  role font/.initial             = \footnotesize\itshape,
+  role text/.initial             = black,
+  role pos/.initial              = auto,  % auto: 0.5, or 0.25 from the entity with inline cards
+  % -- edges ----------------------------------------------------------
+  edge color/.initial            = black,
+  edge line width/.initial       = 0.5pt,
+  link double distance/.initial  = 1.5pt,   % gap of double-lined links
+  % -- notes ----------------------------------------------------------
+  note color/.initial            = red!70!black,
+  note font/.initial             = \small,
+  % -- subdomains -----------------------------------------------------
+  subdomain color/.initial       = blue!60,
+  subdomain label font/.initial  = \small\bfseries,
+  subdomain line width/.initial  = 1.2pt,
+  subdomain tuck/.initial        = 4pt,
+  subdomain label vpad/.initial  = 4pt,
+  subdomain label hpad/.initial  = 5pt,
+  % -- misc -----------------------------------------------------------
+  rm rules/.initial              = ,        % written by older versions of the editor (ignored here)
+  sans serif/.initial            = false,   % all text of the diagrams
+  sans serif/.default            = true,
+  % the labels below follow the document's language; auto, english or german
+  label language/.initial        = auto,
+  rule warnings/.initial         = true,    % warn about ER rule violations
+  grid color/.initial            = gray!25,
+  grid label color/.initial      = gray!55,
+  .unknown/.code={\PackageError{erdiagram}{Unknown style key
+     `\pgfkeyscurrentname'}{See the erdiagram manual for valid keys.}},
+}
+\newcommand\ersetup[1]{\pgfqkeys{/er}{#1}}
+\def\er@val#1{\pgfkeysvalueof{/er/#1}}
+
+% ====================================================================
+%  2.  TIKZ STYLES  (global, but prefixed with "er ")
+% ====================================================================
+\tikzset{
+  er entity/.style={
+    rectangle, align=center,
+    draw=\er@val{entity draw}, fill=\er@val{entity fill},
+    line width=\er@val{entity line width}, text=\er@val{entity text},
+    font=\er@val{entity font}, inner sep=\er@val{entity inner sep},
+    minimum width=\er@val{entity minimum width},
+    minimum height=\er@val{entity minimum height}},
+  er weak/.style={double, double distance=\er@val{weak double distance}},
+  er crow/.style={draw=\er@val{edge color}, line width=\er@val{edge line width}},
+  er relationship/.style={
+    diamond, align=center,
+    draw=\er@val{rel draw}, fill=\er@val{rel fill},
+    line width=\er@val{rel line width}, text=\er@val{rel text},
+    font=\er@val{rel font}, inner sep=2pt,
+    minimum width=\er@val{rel minimum width},
+    minimum height=\er@val{rel minimum height},
+    aspect=\er@val{rel aspect}},
+  er isa/.code={\er@ifeq{\er@val{isa shape}}{hexagon}%
+    {\pgfkeysalso{er relationship, shape=er hexagon,
+       minimum width=\er@val{isa minimum width},
+       minimum height=\er@val{isa minimum height}}}%
+    {\pgfkeysalso{er relationship}}},
+  er attribute/.style={
+    ellipse, align=center, inner sep=2pt,
+    draw=\er@val{attribute draw}, fill=\er@val{attribute fill},
+    line width=\er@val{edge line width},
+    font=\er@val{attr font}, text=\er@val{attr text},
+    minimum width=\er@val{attribute minimum width},
+    minimum height=\er@val{attribute minimum height}},
+  er composite attribute/.style={er attribute, rectangle, rounded corners=0.3cm},
+  er partial key/.style={dash pattern=on 2pt off 1.2pt},
+  er attr label/.style={
+    font=\er@val{attr font}, text=\er@val{attr text}, inner sep=1pt,
+    text height=1.5ex, text depth=0.25ex},
+  er card/.style={
+    font=\er@val{card font}, text=\er@val{card text}, inner sep=1.5pt},
+  er card inline/.style={fill=white, inner sep=1pt},
+  er role/.style={
+    font=\er@val{role font}, text=\er@val{role text}, inner sep=2pt},
+  er constraint/.style={
+    font=\er@val{constraint font}, text=\er@val{constraint color},
+    inner sep=2pt},
+  er edge/.style={
+    draw=\er@val{edge color}, line width=\er@val{edge line width}},
+  er arrow/.style={er edge, -{Triangle[length=6pt, width=4pt]}},
+  er double link/.style={double, double distance=\er@val{link double distance}},
+  er note/.style={
+    draw=none, fill=none, align=left, inner sep=0pt,
+    text=\er@val{note color}, font=\er@val{note font}},
+}
+
+% ====================================================================
+%  3.  INTERNAL HELPERS
+% ====================================================================
+%% <shared:helpers> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+% --- option handling: our keys are processed by pgfkeys, all unknown
+%     keys are collected in \er@tikz and handed to TikZ verbatim.
+\newtoks\er@tikz
+\def\er@addtikz#1{\er@tikz\expandafter{\the\er@tikz#1,}}
+\def\er@addtikzx#1{\edef\er@tmp{#1}\expandafter\er@addtikz\expandafter{\er@tmp}}
+\def\er@forward#1{%
+  \def\er@tmpv{#1}%
+  \ifx\er@tmpv\pgfkeysnovalue@text
+    \expandafter\er@addtikz\expandafter{\pgfkeyscurrentname}%
+  \else
+    \edef\er@tmp{\expandafter\unexpanded\expandafter{\pgfkeyscurrentname}%
+      ={\unexpanded{#1}}}%
+    \expandafter\er@addtikz\expandafter{\er@tmp}%
+  \fi}
+% turn the collected options into the TikZ style "er@user"
+\def\er@usetikz{\tikzset{er@user/.style/.expanded={\the\er@tikz}}}
+
+% --- boolean test for "true"/"false" values ---------------------------
+\def\er@true{true}
+\def\er@iftrue#1{\edef\er@tmpb{#1}\ifx\er@tmpb\er@true
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+% \er@ifempty{\macro or text}: the argument is expanded only ONCE and then
+% detokenized -- labels may contain fragile commands that must not be
+% expanded in an \edef (e.g. \textbar in OT1)
+\def\er@ifempty#1{\expandafter\er@ifempty@\expandafter{#1}}
+\def\er@ifempty@#1{\if\relax\detokenize{#1}\relax
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+% full expansion, for option values only
+\def\er@ifemptyx#1{\edef\er@tmpb{#1}\ifx\er@tmpb\@empty
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+\def\er@ifeq#1#2{\edef\er@tmpa{#1}\edef\er@tmpb{#2}\ifx\er@tmpa\er@tmpb
+  \expandafter\@firstoftwo\else\expandafter\@secondoftwo\fi}
+
+% --- colour tints: "blue" -> blue!20, "orange!30" stays as it is -------
+\def\er@tint#1{%
+  \edef\er@tmp{\noexpand\in@{!}{#1}}\er@tmp
+  \ifin@ \def\er@tinted{#1}%
+  \else
+    \er@ifeq{#1}{white}{\def\er@tinted{white}}{%
+    \er@ifeq{#1}{none}{\def\er@tinted{none}}{\def\er@tinted{#1!20}}}%
+  \fi}
+
+% --- diagram-wide registry of node types --------------------------------
+\newcount\er@diagramno
+\newcount\er@k   % general loop counter
+\def\er@reg#1{er@\the\er@diagramno @#1}  % name of a registry entry
+\def\er@settype#1#2{\expandafter\xdef\csname\er@reg{type@#1}\endcsname{#2}}
+\def\er@gettype#1{%  -> \er@type
+  \expandafter\ifx\csname\er@reg{type@#1}\endcsname\relax
+    \def\er@type{unknown}%
+  \else
+    \edef\er@type{\csname\er@reg{type@#1}\endcsname}%
+  \fi}
+\def\er@setflag#1{\expandafter\gdef\csname\er@reg{#1}\endcsname{}}
+\def\er@ifflag#1{\expandafter\ifx\csname\er@reg{#1}\endcsname\relax
+  \expandafter\@secondoftwo\else\expandafter\@firstoftwo\fi}
+\def\er@incr#1{\edef\er@tmpn{\the\numexpr\er@count{#1}+1\relax}%
+  \expandafter\global\expandafter\let\csname\er@reg{#1}\endcsname\er@tmpn}
+\def\er@count#1{\ifcsname\er@reg{#1}\endcsname\csname\er@reg{#1}\endcsname\else0\fi}
+\def\er@remember#1#2{% append id #2 to list #1
+  \expandafter\ifx\csname\er@reg{list@#1}\endcsname\relax
+    \expandafter\xdef\csname\er@reg{list@#1}\endcsname{#2}%
+  \else
+    \expandafter\xdef\csname\er@reg{list@#1}\endcsname{%
+      \csname\er@reg{list@#1}\endcsname,#2}%
+  \fi}
+\def\er@forlist#1#2{% #1 list name, #2 macro taking one id
+  \expandafter\ifx\csname\er@reg{list@#1}\endcsname\relax\else
+    \edef\er@tmpl{\csname\er@reg{list@#1}\endcsname}%
+    \@for\er@item:=\er@tmpl\do{\expandafter#2\expandafter{\er@item}}%
+  \fi}
+
+% --- optional trailing {argument}: \er@peekbrace{\cmd{a}{b}} calls
+%     \cmd{a}{b}{<arg>} if a brace group follows, else \cmd{a}{b}{}
+\long\def\er@peekbrace#1{\@ifnextchar\bgroup{#1}{#1{}}}
+
+% --- node id without anchor: "student.north" -> "student" -------------
+\def\er@splitid#1{\er@splitid@#1.\@nil}
+\def\er@splitid@#1.#2\@nil{\def\er@id{#1}}
+
+% --- rule warnings -------------------------------------------------------
+\def\er@rule#1{\er@iftrue{\er@val{rule warnings}}%
+  {\PackageWarning{erdiagram}{ER rule: #1}}{}}
+
+
+% anchor on the opposite side (for labels placed next to a node)
+\def\er@oppositeanchor#1{%
+  \def\er@oppanchor{west}%
+  \er@ifeq{#1}{north}{\def\er@oppanchor{south}}{}%
+  \er@ifeq{#1}{south}{\def\er@oppanchor{north}}{}%
+  \er@ifeq{#1}{east}{\def\er@oppanchor{west}}{}%
+  \er@ifeq{#1}{west}{\def\er@oppanchor{east}}{}%
+  \er@ifeq{#1}{north east}{\def\er@oppanchor{south west}}{}%
+  \er@ifeq{#1}{north west}{\def\er@oppanchor{south east}}{}%
+  \er@ifeq{#1}{south east}{\def\er@oppanchor{north west}}{}%
+  \er@ifeq{#1}{south west}{\def\er@oppanchor{north east}}{}}
+%% </shared:helpers>
+
+% ====================================================================
+%  4.  NODES
+% ====================================================================
+\pgfkeys{
+  /er/node/.is family, /er/node,
+  .unknown/.code   = {\er@forward{#1}},
+  weak/.code       = {\er@ifeq{#1}{false}{}{\er@addtikz{er weak}\def\er@weak{1}}},
+  weak/.default    = true,
+  dependency/.code = {\def\er@dep{#1}\er@addtikz{er weak}\def\er@weak{1}},
+  color/.code      = {\er@tint{#1}\er@addtikzx{fill=\er@tinted}},
+  colour/.forward to = /er/node/color,
+  % only for \attribute
+  key/.code        = {\def\er@akey{1}},
+  derived/.code    = {\er@addtikz{dashed}},
+  multivalued/.code= {\er@addtikz{double, double distance=1.5pt}},
+  composite/.code  = {\def\er@astyle{er composite attribute}},
+  of/.store in     = \er@aof,
+  type/.store in   = \er@atype,
+  formula/.code    = {},  % for the relational schema only
+  unique/.code     = {},  % a further candidate key, not drawn
+  unique/.default  = true,
+  % relational model (read by the desktop editor, no effect on the drawing)
+  rm/.code          = {},
+  rm name/.code     = {},
+  rm key/.code      = {},
+  rm category/.code = {},
+  % only for \isa / \canbe
+  constraint pos/.store in = \er@cpos,
+  super card/.store in     = \er@supercard,
+  sub card/.store in       = \er@subcard,
+}
+\def\er@resetnode{%
+  \er@tikz{}\let\er@dep\@empty\let\er@weak\@empty
+  \let\er@akey\@empty\def\er@astyle{er attribute}\let\er@aof\@empty
+  \let\er@atype\@empty
+  \edef\er@cpos{\er@val{constraint pos}}%
+  \let\er@supercard\@empty\let\er@subcard\@empty}
+
+% \er@node{<type>}{<tikz style>}{<options>}{<id>}{<position or -NoValue->}{<label>}
+\def\er@node#1#2#3#4#5#6{%
+  \er@resetnode
+  \pgfqkeys{/er/node}{#3}%
+  \er@usetikz
+  \er@ifempty{\er@dep}{\def\er@label{#6}}{%
+    \def\er@label{{\color{\er@val{dependency color}}\er@val{dependency font}%
+      \er@dep}\\[-2pt]#6}}%
+  \IfNoValueTF{#5}%
+    {\node[#2, er@user] (#4) {\er@label};}%
+    {\node[#2, er@user] (#4) at (#5) {\er@label};}%
+  \er@settype{#4}{#1}%
+  \er@ifempty{\er@weak}{}{\er@setflag{weak@#4}%
+    \expandafter\xdef\csname\er@reg{rdep@#4}\endcsname{\er@dep}}%
+  \er@remember{#1}{#4}}
+
+\NewDocumentCommand\er@cmd@entity{O{} m d() m}{%
+  \er@node{entity}{er entity}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\er@cmd@relationship{O{} m d() m}{%
+  \er@node{relationship}{er relationship}{#1}{#2}{#3}{#4}}
+\NewDocumentCommand\er@cmd@partof{O{} m d()}{%
+  \er@node{relationship}{er relationship}{#1}{#2}{#3}{\er@val{partof label}}}
+\NewDocumentCommand\er@cmd@point{m d()}{%
+  \IfNoValueTF{#2}{\PackageError{erdiagram}{\string\point\space needs a
+    position: \string\point{#1}(x,y)}{}}{\coordinate (#1) at (#2);}%
+  \er@settype{#1}{point}}
+
+% --- Chen-style attribute ellipse --------------------------------------
+\NewDocumentCommand\er@cmd@attribute{O{} m d() m}{%
+  \er@resetnode
+  \pgfqkeys{/er/node}{#1}%
+  \er@usetikz
+  \let\er@asuffix\@empty
+  \ifx\er@atype\@empty\else\er@iftypes{\def\er@asuffix{\er@typesuffix{\er@atype}}}{}\fi
+  % it may only get linked to a weak entity later
+  \er@ifempty{\er@akey}{\def\er@label{#4\er@asuffix}}%
+    {\def\er@label{\er@latekey{#2}{#4}{\er@asuffix}}}%
+  \IfNoValueTF{#3}%
+    {\node[\er@astyle, er@user] (#2) {\er@label};}%
+    {\node[\er@astyle, er@user] (#2) at (#3) {\er@label};}%
+  \er@settype{#2}{attribute}%
+  \er@ifempty{\er@aof}{}{%
+    \edef\er@tmp{\noexpand\er@link{}{\er@aof}{#2}{}}\er@tmp}}
+
+% --- the shape of IS_A and CAN_BE: an elongated hexagon ------------------
+%  Flat top and bottom, pointed sides.  \er@hh, \er@hw: half sizes, \er@hs: how
+%  much shorter the top is on each side.  Wide enough that the text's corners stay
+%  inside under the slanted sides.  (desktop app: geometry.hexagon_shape)
+\def\er@hexcalc{%
+  \pgfmathsetmacro\er@tw{\the\wd\pgfnodeparttextbox/2}%
+  \pgfmathsetmacro\er@th{(\the\ht\pgfnodeparttextbox+\the\dp\pgfnodeparttextbox)/2}%
+  \pgfmathsetmacro\er@hh{max(\er@th+\pgfshapeinnerysep,\pgfshapeminheight/2)}%
+  \pgfmathsetmacro\er@hs{\er@val{isa slant}*\er@hh}%
+  \pgfmathsetmacro\er@hw{max(\er@tw+\pgfshapeinnerxsep+\er@hs*(\er@th+\pgfshapeinnerysep)/\er@hh,
+                             \pgfshapeminwidth/2)}}
+\pgfdeclareshape{er hexagon}{%
+  \savedanchor\er@hexcenter{%
+    \pgf@x=.5\wd\pgfnodeparttextbox
+    \pgf@y=.5\ht\pgfnodeparttextbox \advance\pgf@y by -.5\dp\pgfnodeparttextbox}%
+  \savedanchor\er@hexsize{\er@hexcalc \pgf@x=\er@hw pt \pgf@y=\er@hh pt}%
+  \savedanchor\er@hexslant{\er@hexcalc \pgf@x=\er@hs pt \pgf@y=0pt}%
+  \savedmacro\er@hexouter{\pgfmathsetmacro\er@hexouter{\pgfshapeouterxsep}}%
+  \anchor{center}{\er@hexcenter}%
+  \anchor{mid}{\er@hexcenter}%
+  \anchor{base}{\er@hexcenter \pgf@y=0pt}%
+  \anchor{north}{\er@hexat{0}{0}{1}}%
+  \anchor{south}{\er@hexat{0}{0}{-1}}%
+  \anchor{east}{\er@hexat{1}{0}{0}}%
+  \anchor{west}{\er@hexat{-1}{0}{0}}%
+  \anchor{north east}{\er@hexat{1}{1}{1}}%
+  \anchor{north west}{\er@hexat{-1}{1}{1}}%
+  \anchor{south east}{\er@hexat{1}{1}{-1}}%
+  \anchor{south west}{\er@hexat{-1}{1}{-1}}%
+  \anchorborder{%
+    % a unit vector: long edges would overflow pgfmath otherwise
+    \pgfpointnormalised{\pgfqpoint{\pgf@x}{\pgf@y}}%
+    \edef\er@hexdx{\the\pgf@x}\edef\er@hexdy{\the\pgf@y}%
+    \er@hexsize
+    \pgfmathsetmacro\er@hw{\the\pgf@x+\er@hexouter}%
+    \pgfmathsetmacro\er@hh{\the\pgf@y+\er@hexouter}%
+    \er@hexslant
+    \pgfmathsetmacro\er@hs{\the\pgf@x}%
+    \pgfmathsetmacro\er@ha{abs(\er@hexdx)}%
+    \pgfmathsetmacro\er@hb{abs(\er@hexdy)}%
+    % the top edge if the ray passes inside its corner, otherwise a slanted side
+    % (not with ?: which would evaluate both, and divide by zero on a level edge)
+    \pgfmathsetmacro\er@hl{\er@ha*\er@hh}%
+    \pgfmathsetmacro\er@hr{(\er@hw-\er@hs)*\er@hb}%
+    \ifdim\er@hl pt>\er@hr pt
+      \pgfmathsetmacro\er@ht{\er@hw/(\er@ha+\er@hs*\er@hb/\er@hh)}%
+    \else\ifdim\er@hb pt=0pt
+      \def\er@ht{0}%
+    \else
+      \pgfmathsetmacro\er@ht{\er@hh/\er@hb}%
+    \fi\fi
+    \er@hexcenter
+    \advance\pgf@x by \er@ht\dimexpr\er@hexdx\relax
+    \advance\pgf@y by \er@ht\dimexpr\er@hexdy\relax}%
+  \backgroundpath{%
+    \er@hexsize \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \er@hexslant \pgf@xb=\pgf@x
+    \er@hexcenter \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfpathmoveto{\pgfqpoint{\dimexpr\pgf@xc+\pgf@xa}{\pgf@yc}}%
+    \pgfpathlineto{\pgfqpoint{\dimexpr\pgf@xc+\pgf@xa-\pgf@xb}{\dimexpr\pgf@yc+\pgf@ya}}%
+    \pgfpathlineto{\pgfqpoint{\dimexpr\pgf@xc-\pgf@xa+\pgf@xb}{\dimexpr\pgf@yc+\pgf@ya}}%
+    \pgfpathlineto{\pgfqpoint{\dimexpr\pgf@xc-\pgf@xa}{\pgf@yc}}%
+    \pgfpathlineto{\pgfqpoint{\dimexpr\pgf@xc-\pgf@xa+\pgf@xb}{\dimexpr\pgf@yc-\pgf@ya}}%
+    \pgfpathlineto{\pgfqpoint{\dimexpr\pgf@xc+\pgf@xa-\pgf@xb}{\dimexpr\pgf@yc-\pgf@ya}}%
+    \pgfpathclose}%
+}
+% \er@hexat{sx}{corner}{sy}: sx,sy = -1,0,1; corner=1: the end of the flat side
+\def\er@hexat#1#2#3{%
+  \er@hexsize
+  \pgfmathsetmacro\er@hw{\the\pgf@x+\er@hexouter}%
+  \pgfmathsetmacro\er@hh{\the\pgf@y+\er@hexouter}%
+  \er@hexslant
+  \pgfmathsetmacro\er@hs{\the\pgf@x}%
+  \er@hexcenter
+  \pgfmathsetlength\pgf@xa{#1*(\er@hw-#2*\er@hs)}%
+  \pgfmathsetlength\pgf@ya{#3*\er@hh}%
+  \advance\pgf@x by \pgf@xa
+  \advance\pgf@y by \pgf@ya}
+% the letters of a constraint as words; anything else stays as it is
+\ExplSyntaxOn
+% several lines need their own box: \\ can't be used inside the label's colour group
+\cs_new_protected:Npn \er@constraintlines
+  {
+    \tl_if_in:NnT \er@constext { \\ }
+      {
+        \tl_put_left:Nn \er@constext { \begingroup \tabcolsep = 0pt \begin{tabular}{c} }
+        \tl_put_right:Nn \er@constext { \end{tabular} \endgroup }
+      }
+  }
+\str_new:N \l__er_card_str
+\cs_new_protected:Npn \er@constraintwords
+  {
+    \str_set:NV \l__er_card_str \er@constext
+    \str_case:onT { \l__er_card_str }
+      {
+        { cd } { \def \er@constext { complete,~disjoint } }
+        { co } { \def \er@constext { complete,~overlapping } }
+        { id } { \def \er@constext { incomplete,~disjoint } }
+        { io } { \def \er@constext { incomplete,~overlapping } }
+        { c } { \def \er@constext { complete } }
+        { i } { \def \er@constext { incomplete } }
+        { d } { \def \er@constext { disjoint } }
+        { o } { \def \er@constext { overlapping } }
+      }
+      { }
+  }
+\ExplSyntaxOff
+
+% --- the labels in the language of the document: #1 English, #2 German ---
+\def\er@lang#1#2{%
+  \er@ifeq{\er@val{label language}}{german}{#2}{%
+    \er@ifeq{\er@val{label language}}{english}{#1}{%
+      % as strings: babel's \languagename doesn't consist of letters for TeX
+      \edef\er@tmp{\noexpand\in@{,\detokenize\expandafter{\languagename},}%
+        {\detokenize{,german,ngerman,austrian,naustrian,swissgerman,nswissgerman,}}}\er@tmp
+      \ifin@ #2\else #1\fi}}}
+% --- generalisation / specialisation -----------------------------------
+%  \isa[opts]{id}(x,y){supertype}{constraint}
+%  (the constraint argument is optional; we peek for a brace group)
+\NewDocumentCommand\er@cmd@isa{O{} m d() m}{%
+  \er@peekbrace{\er@isa{\er@val{isa label}}{#1}{#2}{#3}{#4}}}
+\NewDocumentCommand\er@cmd@canbe{O{} m d() m}{%
+  \er@peekbrace{\er@isa{\er@val{canbe label}}{#1}{#2}{#3}{#4}}}
+\def\er@isa#1#2#3#4#5#6{%
+  \er@resetnode
+  \pgfqkeys{/er/node}{#2}%
+  \er@usetikz
+  \def\er@constext{#6}%
+  \er@ifeq{\er@val{constraint style}}{words}{% words don't fit inside
+    \er@constraintwords
+    \er@ifeq{\er@cpos}{inside}{\def\er@cpos{auto}}{}}{}%
+  \er@constraintlines
+  \er@ifeq{\er@cpos}{inside}%
+    {\er@ifempty{\er@constext}{\def\er@label{#1}}%
+       {\def\er@label{#1\\[-2pt]{\color{\er@val{constraint color}}%
+          \er@val{constraint font}\er@constext}}}}%
+    {\def\er@label{#1}}%
+  \IfNoValueTF{#4}%
+    {\node[er isa, er@user] (#3) {\er@label};}%
+    {\node[er isa, er@user] (#3) at (#4) {\er@label};}%
+  \er@settype{#3}{isa}%
+  \er@remember{isa}{#3}%
+  % constraint letters beside the shape ("auto": placed at the end of
+  % the diagram in the direction with the most room)
+  \er@ifeq{\er@cpos}{inside}{}{\er@ifempty{\er@constext}{}{%
+    \er@ifeq{\er@cpos}{auto}{%
+      \er@remember{isacons}{#3}%
+      \expandafter\xdef\csname\er@reg{cons@#3}\endcsname{%
+        \unexpanded\expandafter{\er@constext}}}%
+     {\er@oppositeanchor{\er@cpos}%
+      \node[er constraint, anchor=\er@oppanchor] at (#3.\er@cpos) {\er@constext};}}}%
+  % "n", "c", "cn" below the shape (alternative notation)
+  \er@ifempty{\er@subcard}{}{%
+    \node[er card, anchor=north west, xshift=1pt] at (#3.south) {\er@subcard};}%
+  % arrow to the supertype
+  \er@splitid{#5}\er@gettype{\er@id}%
+  \er@ifeq{\er@type}{entity}{}{\er@ifeq{\er@type}{unknown}{}{%
+    \er@rule{the supertype `#5' of `#3' is not an entity}}}%
+  \begingroup
+    \er@tikz{}\er@resetlink
+    \def\er@A{(#3)}\def\er@B{(#5)}\def\er@cardend{b}%
+    \let\er@cardtext\er@supercard
+    \def\er@edgestyle{er arrow}%
+    \er@drawedge
+  \endgroup}
+
+
+% ====================================================================
+%  5.  LINKS (edges) WITH CARDINALITIES AND ROLES
+% ====================================================================
+\pgfkeys{
+  /er/link/.is family, /er/link,
+  .unknown/.code       = {\er@forward{#1}},
+  card side/.store in  = \er@cardside,
+  card dist/.store in  = \er@carddist,
+  card pos/.store in   = \er@cardpos,
+  card placement/.store in = \er@cardplacement,
+  inline/.code         = {\def\er@cardplacement{inline}},
+  beside/.code         = {\def\er@cardplacement{beside}},
+  role/.store in       = \er@role,
+  role pos/.store in   = \er@rolepos,
+  role side/.store in  = \er@roleside,
+  bend/.code           = {\er@setbend{#1}},
+  via/.store in        = \er@via,
+  ortho/.store in      = \er@ortho,
+  arrow/.code          = {\def\er@edgestyle{er arrow}},
+  % double line, e.g. between a weak relationship and its weak entity
+  double/.code         = {\er@ifeq{#1}{false}{}{\er@addtikz{er double link}\def\er@double{1}}},
+  double/.default      = true,
+}
+\def\er@resetlink{%
+  \let\er@crow\@empty
+  \def\er@double{0}%
+  \edef\er@cardside{\er@val{card side}}%
+  \edef\er@carddist{\er@val{card dist}}%
+  \let\er@cardpos\@empty
+  \edef\er@cardplacement{\er@val{card placement}}%
+  \let\er@role\@empty
+  \edef\er@rolepos{\er@val{role pos}}%
+  \let\er@roleside\@empty
+  \let\er@via\@empty\let\er@ortho\@empty
+  \let\er@cardtext\@empty
+  \def\er@edgestyle{er edge}}
+
+%% <shared:geometry> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+% --- parse "(1,2) (a.north) (3,4)" into \er@pts = {(1,2)}{(a.north)}{(3,4)}
+\def\er@stopmark{\er@stop}
+\def\er@parsevia#1{\def\er@pts{}\er@npts=0 \er@parsevia@#1(\er@stop)}
+\newcount\er@npts
+\def\er@parsevia@#1(#2){%
+  \def\er@tmp{#2}%
+  \ifx\er@tmp\er@stopmark\else
+    \advance\er@npts by 1
+    \expandafter\def\csname er@pt@\the\er@npts\endcsname{(#2)}%
+    \expandafter\er@parsevia@
+  \fi}
+
+% --- geometry of the segment from #1 to #2 (both "(...)") --------------
+%     -> \er@vx, \er@vy (direction, pt) and \er@len (length, pt)
+\def\er@measure#1#2{%
+  \edef\er@do{\noexpand\path[draw=none] #1 -- #2 coordinate[pos=0] (er@s)
+    coordinate[pos=1] (er@t);}\er@do
+  \pgfpointanchor{er@s}{center}\pgfgetlastxy\er@sx\er@sy
+  \pgfpointanchor{er@t}{center}\pgfgetlastxy\er@tx\er@ty
+  \pgfmathsetmacro\er@vx{\er@tx-\er@sx}%
+  \pgfmathsetmacro\er@vy{\er@ty-\er@sy}%
+  \pgfmathsetmacro\er@len{veclen(\er@vx,\er@vy)}}
+
+% --- which side of the direction (\er@vx,\er@vy) is "above", "right"..?
+%     #1 = auto|above|below|left|right  -> \er@sideleft = 1 (left) / 0
+\def\er@chooseside#1{%
+  \pgfmathparse{abs(\er@vx)>=abs(\er@vy) ? 1 : 0}%
+  \ifnum\pgfmathresult=1 \def\er@horiz{1}\else\def\er@horiz{0}\fi
+  \def\er@req{#1}%
+  \er@ifeq{\er@req}{auto}{%
+    \ifnum\er@horiz=1 \def\er@req{above}\else\def\er@req{right}\fi}{}%
+  \er@ifeq{\er@req}{above}{%
+    \ifdim\er@vx pt>0.01pt \def\er@sideleft{1}\else
+    \ifdim\er@vx pt<-0.01pt \def\er@sideleft{0}\else
+    \er@chooseside@right\fi\fi}{}%
+  \er@ifeq{\er@req}{below}{%
+    \ifdim\er@vx pt>0.01pt \def\er@sideleft{0}\else
+    \ifdim\er@vx pt<-0.01pt \def\er@sideleft{1}\else
+    \er@chooseside@left\fi\fi}{}%
+  \er@ifeq{\er@req}{right}{\er@chooseside@right}{}%
+  \er@ifeq{\er@req}{left}{\er@chooseside@left}{}}
+\def\er@chooseside@right{%
+  \ifdim\er@vy pt<-0.01pt \def\er@sideleft{1}\else
+  \ifdim\er@vy pt>0.01pt \def\er@sideleft{0}\else
+  \ifdim\er@vx pt>0pt \def\er@sideleft{0}\else\def\er@sideleft{1}\fi\fi\fi}
+\def\er@chooseside@left{%
+  \ifdim\er@vy pt<-0.01pt \def\er@sideleft{0}\else
+  \ifdim\er@vy pt>0.01pt \def\er@sideleft{1}\else
+  \ifdim\er@vx pt>0pt \def\er@sideleft{1}\else\def\er@sideleft{0}\fi\fi\fi}
+
+\newcount\er@i
+% --- "(student.north)" -> \er@id = student
+\def\er@idof#1{\expandafter\er@idof@#1}
+\def\er@idof@(#1){\er@splitid{#1}}
+% --- direction (degrees) from coordinate #1 to coordinate #2 -> \er@ang
+\def\er@angleof#1#2{%
+  \pgfpointanchor{#1}{center}\pgfgetlastxy\er@xa\er@ya
+  \pgfpointanchor{#2}{center}\pgfgetlastxy\er@xb\er@yb
+  \pgfmathsetmacro\er@ang{atan2(\er@yb-\er@ya,\er@xb-\er@xa)}}
+% --- remember that something leaves node #1 in direction #2 -> #3
+%     (#4 = edge number, 0 for attribute trees etc.)
+\def\er@recordangle#1#2#3#4{%
+  \er@angleof{#2}{#3}%
+  \er@remember{angles@#1}{#4/\er@ang}}
+\newif\ifer@sidesonly % wide text: centred above or below it would straddle the edges
+% --- the free direction around node #1 that is furthest away from all
+%     recorded edges -> \er@bestpos (anchor name), \er@oppanchor
+%     (candidates in order of preference; ties keep the earlier one)
+\def\er@bestdir#1{%
+  \def\er@bestscore{-1}\def\er@bestpos{east}%
+  \expandafter\ifx\csname\er@reg{list@angles@#1}\endcsname\relax
+    \def\er@tmplb{}\else\edef\er@tmplb{\csname\er@reg{list@angles@#1}\endcsname}\fi
+  \er@trydir{0}{east}\er@trydir{45}{north east}\er@trydir{315}{south east}%
+  \ifer@sidesonly\else\er@trydir{90}{north}\er@trydir{270}{south}\fi
+  \er@trydir{180}{west}%
+  \er@trydir{135}{north west}\er@trydir{225}{south west}%
+  \er@oppositeanchor{\er@bestpos}}
+\def\er@trydir#1#2{%
+  \def\er@score{180}\def\er@cand{#1}%
+  \ifx\er@tmplb\@empty\else
+    \@for\er@itemb:=\er@tmplb\do{\expandafter\er@trydir@\er@itemb\@nil}\fi
+  \ifdim\er@score pt>\er@bestscore pt
+    \let\er@bestscore\er@score\def\er@bestpos{#2}\fi}
+\def\er@trydir@#1/#2\@nil{%
+  \pgfmathsetmacro\er@d{min(Mod(\er@cand-#2,360),Mod(#2-\er@cand,360))}%
+  \pgfmathsetmacro\er@score{min(\er@score,\er@d)}}
+% --- bend=<signed angle>: positive bends left, negative right
+\def\er@setbend#1{%
+  \pgfmathparse{#1}\let\er@b\pgfmathresult
+  \ifdim\er@b pt>0pt \er@addtikzx{bend left=\er@b}\fi
+  \ifdim\er@b pt<0pt \pgfmathparse{-\er@b}\er@addtikzx{bend right=\pgfmathresult}\fi}
+%% </shared:geometry>
+
+% --- the edge drawer --------------------------------------------------
+%  input: \er@A, \er@B ("(...)"), \er@via, \er@ortho, \er@cardend (a|b),
+%         \er@cardtext, \er@card..., \er@role..., \er@edgestyle, \er@tikz
+%  Cardinalities with "card side=auto" are only *marked* on the path; they
+%  are placed at the end of the diagram (\er@placecards), when all edges
+%  meeting the entity are known and the side with more room can be chosen.
+\def\er@drawedge{%
+  \er@usetikz
+  \global\advance\er@edgeno by 1 \edef\er@en{\the\er@edgeno}%
+  % points P0 .. Pn
+  \er@ifempty{\er@via}{\er@npts=0 }{\expandafter\er@parsevia\expandafter{\er@via}}%
+  \expandafter\let\csname er@pt@0\endcsname\er@A
+  \advance\er@npts by 1
+  \expandafter\let\csname er@pt@\the\er@npts\endcsname\er@B
+  % segment that carries the labels and its "outward" direction
+  \er@ifeq{\er@cardend}{b}%
+    {\edef\er@lseg{\the\er@npts}%
+     \edef\er@E{\csname er@pt@\the\er@npts\endcsname}%
+     \edef\er@N{\csname er@pt@\the\numexpr\er@npts-1\endcsname}}%
+    {\def\er@lseg{1}%
+     \edef\er@E{\csname er@pt@0\endcsname}%
+     \edef\er@N{\csname er@pt@1\endcsname}}%
+  \er@measure\er@E\er@N
+  % position of the cardinality along the segment
+  \er@ifeq{\er@cardplacement}{inline}{\def\er@p{0.5}}{%
+    \er@ifempty{\er@cardpos}{%
+      \ifdim\er@len pt<1pt \def\er@p{0.5}\else
+        \pgfmathsetmacro\er@p{min(\er@carddist/\er@len, 0.45)}\fi}%
+      {\edef\er@p{\er@cardpos}}%
+    \er@ifeq{\er@cardend}{b}{\pgfmathsetmacro\er@p{1-\er@p}}{}}%
+  % deferred placement? (all cardinalities beside the edge)
+  \def\er@defer{0}%
+  \er@ifempty{\er@cardtext}{}{\er@ifeq{\er@cardplacement}{inline}{}%
+    {\def\er@defer{1}}}%
+  % side of the cardinality / role (relative to the outward direction)
+  \er@chooseside{\er@cardside}\let\er@cardleft\er@sideleft
+  \er@ifeq{\er@cardside}{auto}{\edef\er@cardpref{\er@sideleft}}%
+    {\edef\er@cardpref{\er@sideleft!}}% "!" = forced by the user
+  \er@ifempty{\er@roleside}{\er@chooseside{auto}\let\er@roleleft\er@sideleft}%
+    {\er@chooseside{\er@roleside}\let\er@roleleft\er@sideleft}%
+  \er@ifeq{\er@cardend}{b}{% path runs towards the entity: flip sides
+    \ifnum\er@cardleft=1 \def\er@cardleft{0}\else\def\er@cardleft{1}\fi
+    \ifnum\er@roleleft=1 \def\er@roleleft{0}\else\def\er@roleleft{1}\fi}{}%
+  \ifnum\er@cardleft=1 \def\er@cardauto{auto=left}\else\def\er@cardauto{auto=right}\fi
+  \ifnum\er@roleleft=1 \def\er@roleauto{auto=left}\else\def\er@roleauto{auto=right}\fi
+  % label nodes
+  \def\er@nodes{}%
+  \er@ifempty{\er@cardtext}{}{%
+    \ifnum\er@defer=1
+      \er@ifeq{\er@cardend}{b}{\pgfmathsetmacro\er@pt{max(\er@p-0.02,0)}}%
+                              {\pgfmathsetmacro\er@pt{min(\er@p+0.02,1)}}%
+      \edef\er@nodes{coordinate[pos=\er@p] (er@cp@\er@en)
+        coordinate[pos=\er@pt] (er@ct@\er@en)}%
+    \else
+    \er@ifeq{\er@cardplacement}{inline}%
+      {\edef\er@nodes{\unexpanded\expandafter{\er@nodes} node[er card,
+         er card inline, pos=\er@p] {\unexpanded\expandafter{\er@cardtext}}}}%
+      {\edef\er@nodes{\unexpanded\expandafter{\er@nodes} node[er card,
+         pos=\er@p, \er@cardauto] {\unexpanded\expandafter{\er@cardtext}}}}%
+    \fi}%
+  \er@ifeq{\er@rolepos}{auto}{% keep the role clear of a mid-edge cardinality
+    \er@ifeq{\er@cardplacement}{inline}{\er@ifempty{\er@cardtext}{\def\er@rolepos{0.5}}{%
+      \er@ifeq{\er@cardend}{b}{\def\er@rolepos{0.75}}{\def\er@rolepos{0.25}}}}%
+      {\def\er@rolepos{0.5}}}{}%
+  \er@ifempty{\er@role}{}{%
+    \edef\er@nodes{\unexpanded\expandafter{\er@nodes} node[er role,
+      pos=\er@rolepos, \er@roleauto] {\unexpanded\expandafter{\er@role}}}}%
+  % operation between the points
+  \er@ifempty{\er@ortho}{\def\er@op{to}}{%
+    \ifnum\er@npts=1 \let\er@op\er@ortho\else\def\er@op{to}\fi}%
+  % assemble the path (with helper coordinates at both ends)
+  \let\er@stub\@empty
+  \ifx\er@crow\@empty\else\er@crowstub\fi
+  \er@buildpath
+  \ifx\er@stub\@empty\else      % the straight piece at the entity
+    \er@ifeq{\er@stub}{b}%
+      {\edef\er@pathtl{\unexpanded\expandafter{\er@pathtl} -- (er@h@\er@en)}}%
+      {\edef\er@pathtl{(er@h@\er@en) -- \unexpanded\expandafter{\er@pathtl}}}%
+  \fi
+  \edef\er@do{\noexpand\draw[\er@edgestyle, er@user]
+    \unexpanded\expandafter{\er@pathtl};}%
+  \er@do
+  \ifx\er@stub\@empty\else      % the edge leaves the entity along the stub
+    \coordinate (er@e@\er@en @\er@stub 0) at (er@h@\er@en);
+    \coordinate (er@e@\er@en @\er@stub 1) at (er@q@\er@en);
+  \fi
+  \ifx\er@crow\@empty\else\er@drawcrow\fi
+  % remember the directions in which the edge leaves its two end nodes
+  \er@idof\er@A\er@recordangle{\er@id}{er@e@\er@en @a0}{er@e@\er@en @a1}{\er@en}%
+  \er@idof\er@B\er@recordangle{\er@id}{er@e@\er@en @b0}{er@e@\er@en @b1}{\er@en}%
+  \ifnum\er@defer=1
+    \er@ifeq{\er@cardend}{b}{\er@idof\er@B}{\er@idof\er@A}%
+    \er@remember{cards}{\er@en}%
+    \expandafter\xdef\csname\er@reg{card@\er@en @ent}\endcsname{\er@id}%
+    \expandafter\xdef\csname\er@reg{card@\er@en @pref}\endcsname{\er@cardpref}%
+    \expandafter\xdef\csname\er@reg{card@\er@en @text}\endcsname{%
+      \unexpanded\expandafter{\er@cardtext}}%
+  \fi}
+\newcount\er@edgeno
+% --- the path through P0 .. Pn, with the helper coordinates -> \er@pathtl
+\def\er@buildpath{%
+  \edef\er@pathtl{\csname er@pt@0\endcsname}%
+  \er@i=0
+  \loop\ifnum\er@i<\er@npts
+    \advance\er@i by 1
+    \edef\er@pathtl{\unexpanded\expandafter{\er@pathtl} \er@op\space}%
+    \ifnum\er@i=1
+      \edef\er@pathtl{\unexpanded\expandafter{\er@pathtl}%
+        coordinate[pos=0] (er@e@\er@en @a0) coordinate[pos=0.1] (er@e@\er@en @a1) }%
+    \fi
+    \ifnum\er@i=\er@npts
+      \edef\er@pathtl{\unexpanded\expandafter{\er@pathtl}%
+        coordinate[pos=1] (er@e@\er@en @b0) coordinate[pos=0.9] (er@e@\er@en @b1) }%
+    \fi
+    \ifnum\er@i=\er@lseg\relax
+      \edef\er@pathtl{\unexpanded\expandafter{\er@pathtl}%
+        \unexpanded\expandafter{\er@nodes} }%
+    \fi
+    \edef\er@pathtl{\unexpanded\expandafter{\er@pathtl}%
+      \csname er@pt@\the\er@i\endcsname}%
+  \repeat}
+% --- crow's foot: the edge meets the side of the entity at a right angle.  The
+%  path is found once without drawing it, to learn where it meets the border (H).
+%  The side there gives the normal; Q is H moved outwards along it.  The edge is
+%  then drawn to Q, and a straight piece from Q to H carries the symbol.
+\def\er@crowstub{%
+  \let\er@savednodes\er@nodes\let\er@nodes\@empty
+  \er@buildpath
+  \edef\er@do{\noexpand\path[\er@edgestyle, er@user, draw=none, fill=none,
+    every postaction/.style={draw=none}]
+    \unexpanded\expandafter{\er@pathtl};}%
+  \er@do
+  \let\er@nodes\er@savednodes
+  \er@ifeq{\er@cardend}{b}{\let\er@stubnode\er@bid}{\let\er@stubnode\er@aid}%
+  \pgfpointanchor{\er@stubnode}{center}\pgfgetlastxy\er@cx\er@cy
+  \pgfpointanchor{\er@stubnode}{east}\pgfgetlastxy\er@ex\er@tmpy
+  \pgfpointanchor{\er@stubnode}{north}\pgfgetlastxy\er@tmpx\er@nty
+  \pgfpointanchor{er@e@\er@en @\er@cardend 0}{center}\pgfgetlastxy\er@hx\er@hy
+  \pgfmathsetmacro\er@hw{\er@ex-\er@cx}\pgfmathsetmacro\er@hh{\er@nty-\er@cy}%
+  \ifdim\er@hw pt>0pt \ifdim\er@hh pt>0pt
+    \pgfmathsetmacro\er@rx{abs(\er@hx-\er@cx)/\er@hw}%
+    \pgfmathsetmacro\er@ry{abs(\er@hy-\er@cy)/\er@hh}%
+    \ifdim\er@rx pt<\er@ry pt
+      \def\er@nx{0}\ifdim\er@hy<\er@cy\relax \def\er@ny{-1}\else\def\er@ny{1}\fi
+    \else
+      \def\er@ny{0}\ifdim\er@hx<\er@cx\relax \def\er@nx{-1}\else\def\er@nx{1}\fi
+    \fi
+    \pgfmathsetmacro\er@sl{2.5*\er@val{crow length}}%
+    \coordinate (er@h@\er@en) at (er@e@\er@en @\er@cardend 0);
+    \coordinate (er@q@\er@en) at ($(er@h@\er@en)+(\er@nx*\er@sl pt,\er@ny*\er@sl pt)$);
+    \er@ifeq{\er@cardend}{b}%
+      {\expandafter\def\csname er@pt@\the\er@npts\endcsname{(er@q@\er@en)}}%
+      {\expandafter\def\csname er@pt@0\endcsname{(er@q@\er@en)}}%
+    \let\er@stub\er@cardend
+  \fi\fi}
+
+% --- place the deferred cardinalities -----------------------------------
+%  For each card: theta = direction in which its edge leaves the entity.
+%  gap left/right = angle to the next edge (or attribute tree) at that
+%  entity, counter-clockwise/clockwise.  The card goes to the side with
+%  more room; if both sides have at least 90 degrees, the preferred side
+%  ("above" for flat edges, "right" for steep ones) is used.
+\def\er@placecards{\er@forlist{cards}\er@placecard}
+\def\er@placecard#1{%
+  \edef\er@curcard{#1}%
+  \edef\er@ent{\csname\er@reg{card@#1@ent}\endcsname}%
+  \er@angleof{er@cp@#1}{er@ct@#1}\let\er@th\er@ang
+  \def\er@gl{360}\def\er@gr{360}%
+  \expandafter\ifx\csname\er@reg{list@angles@\er@ent}\endcsname\relax\else
+    \edef\er@tmplb{\csname\er@reg{list@angles@\er@ent}\endcsname}%
+    \@for\er@itemb:=\er@tmplb\do{\expandafter\er@gapitem\er@itemb\@nil}%
+  \fi
+  \edef\er@pref{\csname\er@reg{card@#1@pref}\endcsname}%
+  \expandafter\er@splitforced\er@pref!\@nil
+  \ifnum\er@forced=1 \let\er@left\er@pref
+  \else
+    \pgfmathtruncatemacro\er@left{min(\er@gl,\er@gr)>=90 ? \er@pref :
+      (\er@gl>\er@gr ? 1 : (\er@gl<\er@gr ? 0 : \er@pref))}%
+  \fi
+  % anchor = the corner of the label that lies furthest towards the edge
+  % (so the whole label is on the chosen side); ties are broken towards
+  % the entity, so that the label extends outwards along the edge
+  \ifnum\er@left=1 \pgfmathsetmacro\er@nth{\er@th+90}%
+  \else \pgfmathsetmacro\er@nth{\er@th-90}\fi
+  \pgfmathtruncatemacro\er@sx{-sign(round(100*(cos(\er@nth)+0.15*cos(\er@th))))}%
+  \pgfmathtruncatemacro\er@sy{-sign(round(100*(sin(\er@nth)+0.15*sin(\er@th))))}%
+  \edef\er@cx{\the\numexpr-\er@sx}\edef\er@cy{\the\numexpr-\er@sy}%
+  \edef\er@anc{\er@sx/\er@sy}\er@anchorname
+  % size of the label (with inner sep) and bounding box of the entity
+  \setbox\er@cardbox\hbox{\pgfinterruptpicture\er@val{card font}%
+    \csname\er@reg{card@#1@text}\endcsname\endpgfinterruptpicture}%
+  \pgfmathsetmacro\er@w{\wd\er@cardbox/2+1.5pt}%
+  \pgfmathsetmacro\er@h{(\ht\er@cardbox+\dp\er@cardbox)/2+1.5pt}%
+  \pgfpointanchor{\er@ent}{south west}\pgfgetlastxy\er@ex\er@ey
+  \pgfpointanchor{\er@ent}{north east}\pgfgetlastxy\er@fx\er@fy
+  \pgfpointanchor{er@cp@#1}{center}\pgfgetlastxy\er@px\er@py
+  % slide outwards along the edge (1mm steps) until the label clears the
+  % entity's bounding box
+  \expandafter\ifx\csname\er@reg{list@cardboxes}\endcsname\relax
+    \def\er@tmplb{}\else\edef\er@tmplb{\csname\er@reg{list@cardboxes}\endcsname}\fi
+  \er@k=0 \def\er@clear{0}%
+  \loop
+    \pgfmathsetmacro\er@qx{\er@px+\er@k*1mm*cos(\er@th)}%
+    \pgfmathsetmacro\er@qy{\er@py+\er@k*1mm*sin(\er@th)}%
+    % the label's box
+    \pgfmathsetmacro\er@bxa{\er@qx+\er@cx*\er@w-\er@w}%
+    \pgfmathsetmacro\er@bxb{\er@qx+\er@cx*\er@w+\er@w}%
+    \pgfmathsetmacro\er@bya{\er@qy+\er@cy*\er@h-\er@h}%
+    \pgfmathsetmacro\er@byb{\er@qy+\er@cy*\er@h+\er@h}%
+    \er@boxhit{\er@ex}{\er@ey}{\er@fx}{\er@fy}% its own entity
+    \ifnum\er@hit=0 \ifx\er@tmplb\@empty\else  % cardinalities placed before
+      \@for\er@itemb:=\er@tmplb\do{\ifnum\er@hit=0
+        \expandafter\er@boxhit@\er@itemb\@nil\fi}\fi\fi
+    \ifnum\er@hit=0 \def\er@clear{1}\fi
+    \ifnum\er@clear=0 \ifnum\er@k<12 \advance\er@k by 1 \else\def\er@clear{1}\fi\fi
+  \ifnum\er@clear=0 \repeat
+  \er@remember{cardboxes}{\er@bxa/\er@bya/\er@bxb/\er@byb}%
+  \node[er card, anchor=\er@anc] at (\er@qx pt,\er@qy pt)
+    {\csname\er@reg{card@#1@text}\endcsname};}
+% does the label box (\er@bxa..\er@byb) overlap the box #1,#2 -- #3,#4
+% (with 1pt tolerance)? -> \er@hit = 1/0
+\def\er@boxhit#1#2#3#4{%
+  \pgfmathtruncatemacro\er@hit{and(and(\er@bxa < #3+1, \er@bxb > #1-1),
+                                   and(\er@bya < #4+1, \er@byb > #2-1))}}
+\def\er@boxhit@#1/#2/#3/#4\@nil{\er@boxhit{#1}{#2}{#3}{#4}}
+\newbox\er@cardbox
+\def\er@anchorname{% "sx/sy" (each -1, 0 or 1) -> TikZ anchor name
+  \def\er@tmp##1/##2\@nil{%
+    \ifcase\numexpr(##1+1)*3+##2+1\relax
+      \def\er@anc{south west}\or\def\er@anc{west}\or\def\er@anc{north west}\or
+      \def\er@anc{south}\or\def\er@anc{center}\or\def\er@anc{north}\or
+      \def\er@anc{south east}\or\def\er@anc{east}\or\def\er@anc{north east}\fi}%
+  \expandafter\er@tmp\er@anc\@nil}
+\def\er@splitforced#1!#2\@nil{\def\er@pref{#1}%
+  \er@ifempty{#2}{\def\er@forced{0}}{\def\er@forced{1}}}
+\def\er@gapitem#1/#2\@nil{%
+  \ifnum#1=\er@curcard\relax\else
+    \pgfmathsetmacro\er@d{Mod(#2-\er@th,360)}%
+    \pgfmathsetmacro\er@gl{min(\er@gl,\er@d)}%
+    \pgfmathsetmacro\er@d{Mod(\er@th-#2,360)}%
+    \pgfmathsetmacro\er@gr{min(\er@gr,\er@d)}%
+  \fi}
+
+% --- \link[opts]{from}{to}{cardinality} --------------------------------
+\NewDocumentCommand\er@cmd@link{O{} m m}{\er@peekbrace{\er@link{#1}{#2}{#3}}}
+% what a link says about keys (see \er@latekey): #1 is a weak relationship, #2 depends on it
+\def\er@notedep#1#2{%
+  \expandafter\ifx\csname\er@reg{rdep@#1}\endcsname\relax\else
+    \edef\er@tmpd{\csname\er@reg{rdep@#1}\endcsname}%
+    \er@notedepin{wdep@#2}%
+    \ifnum\er@double=1 \er@notedepin{wdbl@#2}\fi
+  \fi}
+\def\er@notedepin#1{%
+  \expandafter\ifx\csname\er@reg{#1}\endcsname\relax
+    \expandafter\xdef\csname\er@reg{#1}\endcsname{\er@tmpd}%
+  \else
+    \er@ifeq{\er@tmpd}{E}{}{\expandafter\xdef\csname\er@reg{#1}\endcsname{other}}%
+  \fi}
+% attribute #1 of type #2 is linked to #3 of type #4
+\def\er@noteowner#1#2#3#4{%
+  \er@ifeq{#2}{attribute}{%
+    \er@ifeq{#4}{attribute}{%
+      \expandafter\ifx\csname\er@reg{aown@#1}\endcsname\relax
+        \expandafter\xdef\csname\er@reg{aown@#1}\endcsname{#3}%
+      \fi}%
+     {\expandafter\xdef\csname\er@reg{aown@#1}\endcsname{#3}}}{}}
+\def\er@link#1#2#3#4{%
+  \begingroup
+  \er@tikz{}\er@resetlink
+  \pgfqkeys{/er/link}{#1}%
+  \def\er@A{(#2)}\def\er@B{(#3)}%
+  \def\er@cardtext{#4}%
+  \er@splitid{#2}\let\er@aid\er@id \er@gettype\er@aid\let\er@at\er@type
+  \er@splitid{#3}\let\er@bid\er@id \er@gettype\er@bid\let\er@bt\er@type
+  \er@notedep\er@aid\er@bid \er@notedep\er@bid\er@aid
+  \er@noteowner\er@aid\er@at\er@bid\er@bt \er@noteowner\er@bid\er@bt\er@aid\er@at
+  % the cardinality belongs to the entity end of the edge
+  \def\er@cardend{a}%
+  \er@ifeq{\er@at}{entity}{}{\er@ifeq{\er@bt}{entity}{\def\er@cardend{b}}{}}%
+  \er@checklink
+  % crow's foot instead of the label? (only at an entity, only for letters)
+  \er@ifeq{\er@val{card symbols}}{crowsfoot}{%
+    \er@ifeq{\er@cardend}{b}{\let\er@tmpe\er@bt}{\let\er@tmpe\er@at}%
+    \er@ifeq{\er@tmpe}{entity}{\er@detectcrow
+      \ifx\er@crow\@empty\else\let\er@cardtext\@empty\fi}{}}{}%
+  \er@drawedge
+  \endgroup}
+
+% --- crow's foot symbols -----------------------------------------------------
+%  \er@crow: 1, c, n, cn.  Outwards from the entity's border: how many at most
+%  (a bar, or the crow's foot), then how few at least (a bar, or a circle).
+\ExplSyntaxOn
+\cs_new_protected:Npn \er@detectcrow
+  {
+    \str_set:NV \l__er_card_str \er@cardtext
+    \str_set:Nx \l__er_card_str { \str_lowercase:f { \l__er_card_str } }
+    \str_case:onF { \l__er_card_str }
+      {
+        { 1 } { \def \er@crow {1} }
+        { c } { \def \er@crow {c} }
+        { n } { \def \er@crow {n} }
+        { m } { \def \er@crow {n} }
+        { k } { \def \er@crow {n} }
+        { p } { \def \er@crow {n} }
+        { q } { \def \er@crow {n} }
+        { cn } { \def \er@crow {cn} }
+        { nc } { \def \er@crow {cn} }
+        { cm } { \def \er@crow {cn} }
+        { mc } { \def \er@crow {cn} }
+        { ck } { \def \er@crow {cn} }
+        { kc } { \def \er@crow {cn} }
+        { cp } { \def \er@crow {cn} }
+        { pc } { \def \er@crow {cn} }
+        { cq } { \def \er@crow {cn} }
+        { qc } { \def \er@crow {cn} }
+      }
+      { \let \er@crow \@empty }
+  }
+\ExplSyntaxOff
+\def\er@crowbar#1{\draw[er crow] (#1pt,-\er@cw pt) -- (#1pt,\er@cw pt);}
+\def\er@crowcircle#1{\pgfmathsetmacro\er@cx{#1+\er@cr}%
+  \draw[er crow, fill=white] (\er@cx pt,0pt) circle[radius=\er@cr pt];}
+\def\er@drawcrow{%
+  \pgfmathanglebetweenpoints
+    {\pgfpointanchor{er@e@\er@en @\er@cardend 0}{center}}%
+    {\pgfpointanchor{er@e@\er@en @\er@cardend 1}{center}}%
+  \let\er@crowangle\pgfmathresult
+  \pgfmathsetmacro\er@cl{\er@val{crow length}}%
+  \pgfmathsetmacro\er@cw{\er@val{crow width}}%
+  \pgfmathsetmacro\er@cr{\er@cl/3}%
+  \begin{scope}[shift={(er@e@\er@en @\er@cardend 0)}, rotate=\er@crowangle]
+    \er@ifeq{\er@crow}{1}{\pgfmathsetmacro\er@cx{\er@cl/2}\er@crowbar{\er@cx}%
+      \er@crowbar{\er@cl}}{}%
+    \er@ifeq{\er@crow}{c}{\pgfmathsetmacro\er@cy{\er@cl/2}\er@crowbar{\er@cy}%
+      \pgfmathsetmacro\er@cy{\er@cl*3/4}\er@crowcircle{\er@cy}}{}%
+    \er@ifeq{\er@crow}{n}{\er@crowfoot
+      \pgfmathsetmacro\er@cy{\er@cl*4/3}\er@crowbar{\er@cy}}{}%
+    \er@ifeq{\er@crow}{cn}{\er@crowfoot
+      \pgfmathsetmacro\er@cy{\er@cl*7/6}\er@crowcircle{\er@cy}}{}%
+  \end{scope}}
+\def\er@crowfoot{\draw[er crow] (0pt,\er@cw pt) -- (\er@cl pt,0pt) -- (0pt,-\er@cw pt);}
+
+% --- ER rules for a single edge -----------------------------------------
+\def\er@isrel#1{\er@ifeq{#1}{relationship}{\@firstoftwo}{\@secondoftwo}}
+\def\er@checklink{%
+  \er@ifeq{\er@at}{entity}{\er@ifeq{\er@bt}{entity}{%
+    \er@rule{entities `\er@aid' and `\er@bid' are linked directly
+      (a relationship is needed in between)}}{}}{}%
+  \er@isrel{\er@at}{\er@isrel{\er@bt}{%
+    \er@rule{relationships `\er@aid' and `\er@bid' are linked directly}}{}}{}%
+  \er@ifeq{\er@at}{isa}{\er@ifeq{\er@bt}{entity}{}{\er@ifeq{\er@bt}{unknown}{}{%
+    \er@rule{only entities may be linked to the generalisation `\er@aid'}}}}{}%
+  \er@ifeq{\er@bt}{isa}{\er@ifeq{\er@at}{entity}{}{\er@ifeq{\er@at}{unknown}{}{%
+    \er@rule{only entities may be linked to the generalisation `\er@bid'}}}}{}%
+  \er@ifempty{\er@cardtext}{}{%
+    \er@ifeq{\er@at}{entity}{}{\er@ifeq{\er@bt}{entity}{}{%
+      \er@rule{cardinality `\er@cardtext' on the edge `\er@aid'--`\er@bid'
+        which does not touch an entity}}}}%
+  \ifnum\er@double=1
+    \er@ifflag{weak@\er@aid}{\er@ifflag{weak@\er@bid}{}{\er@doublerule}}{\er@doublerule}%
+  \fi
+  % bookkeeping for the checks at the end of the diagram
+  \er@incr{links@\er@aid}\er@incr{links@\er@bid}%
+  \er@ifflag{weak@\er@aid}{\er@ifflag{weak@\er@bid}{%
+    \er@setflag{hasdep@\er@aid}\er@setflag{hasdep@\er@bid}}{}}{}}
+
+\def\er@doublerule{\er@rule{the link `\er@aid'--`\er@bid' is double-lined, but only
+  links between double-bordered elements (weak entities and weak
+  relationships) should be}}
+
+% --- checks when the diagram is complete --------------------------------
+\def\er@finalchecks{%
+  \er@forlist{relationship}\er@check@rel
+  \er@forlist{isa}\er@check@isa
+  \er@forlist{entity}\er@check@weak}
+\def\er@check@rel#1{\ifnum\er@count{links@#1}<2
+  \er@rule{relationship `#1' is connected to fewer than two nodes}\fi}
+\def\er@check@isa#1{\ifnum\er@count{links@#1}<1
+  \er@rule{generalisation `#1' has no subtype linked to it}\fi}
+\def\er@check@weak#1{\er@ifflag{weak@#1}{\er@ifflag{hasdep@#1}{}{%
+  \er@rule{weak entity `#1' is not linked to a weak (E/Id) relationship}}}{}}
+
+% ====================================================================
+%  6.  ATTRIBUTE TREES
+% ====================================================================
+%  \attributes[anchor=north, dir=up, side=right, ...]{node}{*Key, Attr, ...}
+%   anchor : where the tree leaves the node (any TikZ anchor or an angle)
+%   dir    : up | down  -> vertical trunk with ticks ("trunk layout")
+%            left|right -> stem + vertical bar ("bar layout")
+%            default: derived from the anchor
+%   side   : left | right   (trunk layout: side of the labels)
+%   align  : center | top | bottom  (bar layout: where the stem meets the bar)
+%   spread, gap, tick, stem, xshift, yshift : geometry
+%  Attributes are listed top to bottom.  Prefix a key attribute with *.
+\pgfkeys{
+  /er/attrs/.is family, /er/attrs,
+  .unknown/.code     = {\er@forward{#1}},
+  anchor/.store in   = \er@aanchor,
+  dir/.store in      = \er@adir,
+  side/.store in     = \er@aside,
+  align/.store in    = \er@aalign,
+  spread/.store in   = \er@aspread,
+  gap/.store in      = \er@agap,
+  tick/.store in     = \er@atick,
+  stem/.store in     = \er@astem,
+  xshift/.store in   = \er@axshift,
+  yshift/.store in   = \er@ayshift,
+}
+\NewDocumentCommand\er@cmd@attributes{O{} m m}{\er@attributes{#1}{#2}{#3}}
+\def\er@attributes#1#2#3{%
+  \er@ifeq{\er@val{attribute style}}{chen}%
+    {\er@deferchen{#2}{#3}}{\er@attributes@{#1}{#2}{#3}}}
+\def\er@attributes@#1#2#3{%
+  \begingroup
+  \er@tikz{}%
+  \def\er@aanchor{east}\let\er@adir\@empty\let\er@aside\@empty
+  \def\er@aalign{center}%
+  \edef\er@aspread{\er@val{attr spread}}\edef\er@agap{\er@val{attr gap}}%
+  \edef\er@atick{\er@val{attr tick}}\edef\er@astem{\er@val{attr stem}}%
+  \def\er@axshift{0pt}\def\er@ayshift{0pt}%
+  \pgfqkeys{/er/attrs}{#1}%
+  \er@usetikz
+  \er@ifempty{\er@agap}{\let\er@agap\er@aspread}{}%
+  \er@gettype{#2}%
+  \er@ifeq{\er@type}{isa}{\er@rule{attributes attached to the
+    generalisation `#2'}}{}%
+  \er@derivedir
+  \path[draw=none] ($(#2.\er@aanchor)+(\er@axshift,\er@ayshift)$) coordinate (er@a0);
+  \global\advance\er@listno by 1
+  \er@ifflag{weak@#2}{\let\er@keylabel\er@partialkeylabel\def\er@attrowner{#2}}{}%
+  \er@attrseq{#3}%
+  \er@ifeq{\er@adir}{up}{\def\er@ang{90}}{\er@ifeq{\er@adir}{down}{\def\er@ang{270}}{%
+    \er@ifeq{\er@adir}{left}{\def\er@ang{180}}{\def\er@ang{0}}}}%
+  \er@remember{angles@#2}{0/\er@ang}%
+  \ifnum\er@nattrs>0
+    \er@ifeq{\er@adir}{up}{\def\er@s{1}\er@trunk}{}%
+    \er@ifeq{\er@adir}{down}{\def\er@s{-1}\er@trunk}{}%
+    \er@ifeq{\er@adir}{right}{\def\er@s{1}\er@bar}{}%
+    \er@ifeq{\er@adir}{left}{\def\er@s{-1}\er@bar}{}%
+  \fi
+  \endgroup}
+
+% derive dir and side from the anchor (if they were not given)
+\def\er@derivedir{%
+  \er@contains{north}{\er@aanchor}\er@hasn
+  \er@contains{south}{\er@aanchor}\er@hass
+  \er@contains{west}{\er@aanchor}\er@hasw
+  \er@contains{east}{\er@aanchor}\er@hase
+  \def\er@numeric{0}%
+  \ifnum\numexpr\er@hasn+\er@hass+\er@hasw+\er@hase=0
+    \er@ifnumber{\er@aanchor}{\def\er@numeric{1}}{}\fi
+  \er@ifempty{\er@adir}{%
+    \ifnum\er@numeric=1
+      \pgfmathparse{abs(sin(\er@aanchor))>abs(cos(\er@aanchor)) ?
+        (sin(\er@aanchor)>0 ? 1 : 2) : (cos(\er@aanchor)<0 ? 3 : 4)}%
+      \ifcase\pgfmathresult\or\def\er@adir{up}\or\def\er@adir{down}%
+        \or\def\er@adir{left}\or\def\er@adir{right}\fi
+    \else
+      \ifnum\er@hasn=1 \def\er@adir{up}\else
+      \ifnum\er@hass=1 \def\er@adir{down}\else
+      \ifnum\er@hasw=1 \def\er@adir{left}\else
+        \def\er@adir{right}\fi\fi\fi
+    \fi}{}%
+  \er@ifempty{\er@aside}{%
+    \ifnum\er@numeric=1
+      \pgfmathparse{cos(\er@aanchor)<-0.01 ? 1 : 0}%
+      \ifnum\pgfmathresult=1 \def\er@aside{left}\else\def\er@aside{right}\fi
+    \else
+      \ifnum\er@hasw=1 \def\er@aside{left}\else\def\er@aside{right}\fi
+    \fi}{}}
+% \er@contains{needle}{haystack}\macro : \macro = 1 if found, else 0
+\def\er@contains#1#2#3{\edef\er@tmp{\noexpand\in@{#1}{#2}}\er@tmp
+  \ifin@\def#3{1}\else\def#3{0}\fi}
+\ExplSyntaxOn
+\cs_new_protected:Npn \er@ifnumber #1
+  { \exp_args:Nnx \regex_match:nnTF { \A\s*[-+]?[0-9.]+\s*\Z } {#1} }
+\ExplSyntaxOff
+
+% --- store the (trimmed) attribute list in \er@attr@<k> -----------------
+%  An item is "[*]name" or "[*]name : type"; the type is printed only with
+%  show types=true.  (A colon inside a name must be braced: ratio 1{:}2.)
+\newcount\er@nattrs
+\def\er@showtypes{false}
+\def\er@iftypes{\er@ifeq{\er@showtypes}{true}}
+\def\er@typesuffix#1{\er@val{type sep}{\er@val{type font}#1}}
+\ExplSyntaxOn
+\tl_new:N \l__er_item_tl
+\tl_new:N \l__er_label_tl
+\tl_new:N \l__er_type_tl
+\tl_new:N \l__er_iskey_tl
+\seq_new:N \l__er_parts_seq
+\tl_new:N \l__er_derived_tl
+\tl_new:N \l__er_multi_tl
+\tl_new:N \l__er_body_tl
+\tl_new:N \l__er_px_tl
+\tl_new:N \l__er_py_tl
+% \l__er_item_tl -> \l__er_label_tl, \l__er_type_tl (split at the last
+% colon outside braces)
+\cs_new_protected:Npn \er@splittype
+  {
+    \exp_args:NNVV \seq_set_split:Nnn \l__er_parts_seq \c_colon_str \l__er_item_tl
+    \int_compare:nNnTF { \seq_count:N \l__er_parts_seq } > { 1 }
+      {
+        \seq_pop_right:NN \l__er_parts_seq \l__er_type_tl
+        \tl_set:Nx \l__er_label_tl { \seq_use:Nn \l__er_parts_seq { \c_colon_str } }
+      }
+      {
+        \tl_set_eq:NN \l__er_label_tl \l__er_item_tl
+        \tl_clear:N \l__er_type_tl
+      }
+  }
+\cs_new_protected:Npn \er@attrseq #1
+  {
+    \er@nattrs = 0
+    \er@attrlist {#1} { 0 }
+  }
+\cs_new_protected:Npn \er@attrlist #1 #2
+  {
+    \clist_map_inline:nn {#1}
+      { \tl_if_blank:nF {##1} { \er@attritem {##1} {#2} } }
+  }
+% #1: the item, #2: the row of the composite attribute it belongs to (0: none).
+% Everything is stored by row; the parts come last because they overwrite
+% the variables.  (desktop app: model.AttrItem.parse)
+\cs_new_protected:Npn \er@attritem #1 #2
+  {
+    \advance \er@nattrs by 1
+    \tl_if_head_eq_charcode:nNTF {#1} *
+      {
+        \tl_set:Nx \l__er_item_tl { \tl_tail:n {#1} }
+        \tl_set:Nn \l__er_iskey_tl { 1 }
+      }
+      {
+        \tl_set:Nn \l__er_iskey_tl { 0 }
+        % +name: a further candidate key, not drawn (+49 is a name)
+        \exp_args:Nnx \regex_match:nnTF { \A \+ [^0-9\s] } { \tl_to_str:n {#1} }
+          { \tl_set:Nx \l__er_item_tl { \tl_tail:n {#1} } }
+          { \tl_set:Nn \l__er_item_tl {#1} }
+      }
+    \er@splittype
+    \tl_set:Nn \l__er_derived_tl { 0 }
+    \tl_set:Nn \l__er_multi_tl { 0 }
+    \tl_clear:N \l__er_body_tl
+    \exp_args:NV \tl_if_head_eq_charcode:nNT \l__er_label_tl /
+      {
+        \tl_set:Nn \l__er_derived_tl { 1 }
+        \tl_set:Nx \l__er_label_tl { \exp_args:NV \tl_tail:n \l__er_label_tl }
+        % a formula is for the relational schema only
+        \exp_args:NNnV \seq_set_split:Nnn \l__er_parts_seq { = } \l__er_label_tl
+        \tl_set:Nx \l__er_label_tl { \seq_item:Nn \l__er_parts_seq { 1 } }
+      }
+    \exp_args:NV \tl_if_head_eq_meaning:nNT \l__er_label_tl \{
+      {
+        \tl_set:Nn \l__er_multi_tl { 1 }
+        \tl_remove_once:Nn \l__er_label_tl { \{ }
+        \tl_remove_once:Nn \l__er_label_tl { \} }
+        \tl_trim_spaces:N \l__er_label_tl
+      }
+    \er@findparts
+    \er@findposition
+    \er@storerow {#2}
+    \tl_if_empty:NF \l__er_body_tl
+      {
+        \cs_set:cpn { er@attrcomposite@ \int_use:N \er@nattrs } { 1 }
+        \tl_set:Nx \l_tmpa_tl { \int_use:N \er@nattrs }
+        \exp_args:NVV \er@attrlist \l__er_body_tl \l_tmpa_tl
+      }
+  }
+% address{street, town} -> the name, and the parts in \l__er_body_tl.  Not for
+% \textit{x}, x_{i} or 1{:}2.
+\cs_new_protected:Npn \er@findparts
+  {
+    \exp_after:wN \er@compa \l__er_label_tl {} \er@nil
+    \tl_trim_spaces:N \er@compname
+    \tl_if_blank:VF \er@compbody
+      {
+        % (TeX has stripped the braces of the {} that was appended)
+        \tl_if_empty:NT \er@comprest
+          {
+            \exp_args:Nnx \regex_match:nnF { \\ | [_\^]\s*\Z | \A\s*\Z } { \tl_to_str:N \er@compname }
+              {
+                \tl_set_eq:NN \l__er_body_tl \er@compbody
+                \tl_set_eq:NN \l__er_label_tl \er@compname
+              }
+          }
+      }
+  }
+% name@1.5/-2 -> the name, \l__er_px_tl, \l__er_py_tl
+\cs_new_protected:Npn \er@findposition
+  {
+    \tl_clear:N \l__er_px_tl
+    \tl_clear:N \l__er_py_tl
+    \exp_args:NnV \regex_extract_once:nnNT
+      { \A (.*?) \s* \x40 ([-+]?[0-9.]+) / ([-+]?[0-9.]+) \s* \Z }
+      \l__er_label_tl \l__er_parts_seq
+      {
+        \tl_set:Nx \l__er_label_tl { \seq_item:Nn \l__er_parts_seq { 2 } }
+        \tl_set:Nx \l__er_px_tl { \seq_item:Nn \l__er_parts_seq { 3 } }
+        \tl_set:Nx \l__er_py_tl { \seq_item:Nn \l__er_parts_seq { 4 } }
+      }
+  }
+\cs_new_protected:Npn \er@storerow #1
+  {
+    \cs_set:cpx { er@attrparent@ \int_use:N \er@nattrs } {#1}
+    \int_compare:nNnT {#1} > { 0 }
+      { \cs_set:cpx { er@attrlast@ #1 } { \int_use:N \er@nattrs } }
+    \cs_set:cpx { er@attrkey@ \int_use:N \er@nattrs } { \l__er_iskey_tl }
+    \cs_set:cpx { er@attrderived@ \int_use:N \er@nattrs } { \l__er_derived_tl }
+    \cs_set:cpx { er@attrmulti@ \int_use:N \er@nattrs } { \l__er_multi_tl }
+    \cs_set:cpn { er@attrcomposite@ \int_use:N \er@nattrs } { 0 }
+    \cs_set:cpx { er@attrpx@ \int_use:N \er@nattrs } { \exp_not:V \l__er_px_tl }
+    \cs_set:cpx { er@attrpy@ \int_use:N \er@nattrs } { \exp_not:V \l__er_py_tl }
+    \cs_set:cpx { er@attrname@ \int_use:N \er@nattrs } { \exp_not:V \l__er_label_tl }
+    \cs_set:cpx { er@attrsuffix@ \int_use:N \er@nattrs }
+      {
+        \tl_if_empty:NF \l__er_type_tl
+          {
+            \str_if_eq:VnT \er@showtypes { true }
+              { \exp_not:N \er@typesuffix { \exp_not:V \l__er_type_tl } }
+          }
+      }
+    \cs_set:cpx { er@attr@ \int_use:N \er@nattrs }
+      {
+        \str_if_eq:VnTF \l__er_iskey_tl { 1 }
+          { \exp_not:N \er@keylabel { \int_use:N \er@nattrs } { \er@shown } }
+          {
+            \er@shown
+            \exp_not:c { er@attrsuffix@ \int_use:N \er@nattrs }
+          }
+      }
+  }
+\cs_new:Npn \er@shown
+  {
+    \str_if_eq:VnT \l__er_derived_tl { 1 } { / }
+    \str_if_eq:VnT \l__er_multi_tl { 1 } { \exp_not:N \{ }
+    \exp_not:V \l__er_label_tl
+    \str_if_eq:VnT \l__er_multi_tl { 1 } { \exp_not:N \} }
+  }
+\ExplSyntaxOff
+% #1: the row, #2: the name
+\def\er@underlinekey#1#2{\underline{#2}\csname er@attrsuffix@#1\endcsname}
+\let\er@keylabel\er@underlinekey
+\def\er@partialkeylabel#1#2{%
+  \expandafter\xdef\csname\er@reg{aown@er@kn\the\er@listno @#1}\endcsname{\er@attrowner}%
+  \er@latekey{er@kn\the\er@listno @#1}{#2}{\csname er@attrsuffix@#1\endcsname}}
+\newcount\er@listno
+\ExplSyntaxOn
+\cs_new_protected:Npn \er@steps #1 #2 #3 { \int_step_inline:nnn {#1} {#2} {#3} }
+\ExplSyntaxOff
+\def\er@compa#1#{\er@compb{#1}}
+\def\er@compb#1#2#3\er@nil{\def\er@compname{#1}\def\er@compbody{#2}\def\er@comprest{#3}}
+
+% --- one row of a list.  #1: its height relative to the origin of the list.
+%  A part hangs below its composite attribute, on a line of its own.
+\def\er@drawrow#1{%
+  \edef\er@parent{\csname er@attrparent@\the\er@k\endcsname}%
+  \ifnum\er@parent=0
+    \def\er@base{0pt}%
+  \else
+    \pgfmathsetlengthmacro\er@base{\csname er@attrtick@\er@parent\endcsname+\er@rowside*\er@val{attr indent}}%
+  \fi
+  \pgfmathsetlengthmacro\er@x{\er@rowside*\er@atick}%
+  \pgfmathsetlengthmacro\er@tickend{\er@base+\er@x}%
+  \expandafter\xdef\csname er@attrtick@\the\er@k\endcsname{\er@tickend}%
+  \expandafter\xdef\csname er@attrrowy@\the\er@k\endcsname{#1}%
+  \draw[er edge] ($(\er@origin)+(\er@base,#1)$) -- ++(\er@x,0pt)
+    node[er attr label, anchor=\er@lanchor, er@user] (er@kn\the\er@listno @\the\er@k)
+      {\csname er@attr@\the\er@k\endcsname};
+  \ifnum\er@parent=0 \else
+    \edef\er@last{\csname er@attrlast@\er@parent\endcsname}%
+    \ifnum\er@last=\er@k
+      \pgfmathsetlengthmacro\er@ya{\csname er@attrrowy@\er@parent\endcsname-0.45*\er@aspread}%
+      \draw[er edge] ($(\er@origin)+(\er@base,\er@ya)$) -- ($(\er@origin)+(\er@base,#1)$);
+    \fi
+  \fi}
+% the last row that isn't a part -> \er@lastmain
+\def\er@findlastmain{%
+  \er@k=0
+  \loop\ifnum\er@k<\er@nattrs
+    \advance\er@k by 1
+    \ifnum\csname er@attrparent@\the\er@k\endcsname=0 \edef\er@lastmain{\the\er@k}\fi
+  \repeat}
+
+% --- trunk layout: vertical spine with horizontal ticks ----------------
+\def\er@trunk{%
+  \er@ifeq{\er@aside}{left}{\def\er@ss{-1}\def\er@lanchor{east}}%
+                           {\def\er@ss{1}\def\er@lanchor{west}}%
+  \let\er@rowside\er@ss
+  \def\er@origin{er@a0}%
+  \er@findlastmain
+  % the row furthest from the node that is not a part
+  \ifnum\er@s=1 \edef\er@j{\the\numexpr\er@nattrs-1\relax}%
+  \else \edef\er@j{\the\numexpr\er@lastmain-1\relax}\fi
+  \pgfmathsetlengthmacro\er@len{\er@s*(\er@agap+\er@j*\er@aspread)}%
+  \draw[er edge] (er@a0) -- ($(er@a0)+(0pt,\er@len)$);
+  \er@k=0
+  \loop\ifnum\er@k<\er@nattrs
+    \advance\er@k by 1
+    % reading order is always top to bottom
+    \ifnum\er@s=1 \edef\er@j{\the\numexpr\er@nattrs-\er@k\relax}%
+    \else \edef\er@j{\the\numexpr\er@k-1\relax}\fi
+    \pgfmathsetlengthmacro\er@y{\er@s*(\er@agap+\er@j*\er@aspread)}%
+    \er@drawrow{\er@y}%
+  \repeat}
+
+% --- bar layout: horizontal stem, vertical bar, ticks -------------------
+\def\er@bar{%
+  \ifnum\er@s=1 \def\er@lanchor{west}\else\def\er@lanchor{east}\fi
+  \let\er@rowside\er@s
+  \def\er@origin{er@b0}%
+  \pgfmathsetlengthmacro\er@x{\er@s*\er@astem}%
+  \path[draw=none] ($(er@a0)+(\er@x,0pt)$) coordinate (er@b0);
+  \draw[er edge] (er@a0) -- (er@b0);
+  % offset of the first and of the k-th attribute relative to the stem
+  \er@ifeq{\er@aalign}{top}{\def\er@off##1{-(##1-1)*\er@aspread}}{%
+  \er@ifeq{\er@aalign}{bottom}{\def\er@off##1{(\er@nattrs-##1)*\er@aspread}}{%
+    \def\er@off##1{(\er@nattrs-1)*\er@aspread/2-(##1-1)*\er@aspread}}}%
+  \er@findlastmain
+  \pgfmathsetlengthmacro\er@ya{\er@off{1}}%
+  % parts at the end may leave the stem below the last row that isn't one
+  \pgfmathsetlengthmacro\er@yb{min(\er@off{\er@lastmain},0pt)}%
+  \draw[er edge] ($(er@b0)+(0pt,\er@ya)$) -- ($(er@b0)+(0pt,\er@yb)$);
+  \er@k=0
+  \loop\ifnum\er@k<\er@nattrs
+    \advance\er@k by 1
+    \pgfmathsetlengthmacro\er@y{\er@off{\er@k}}%
+    \er@drawrow{\er@y}%
+  \repeat}
+
+% ====================================================================
+%  7.  NOTES, SUBDOMAINS, GRID
+% ====================================================================
+%% <shared:extras> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+\pgfkeys{
+  /er/note/.is family, /er/note,
+  .unknown/.code = {\er@forward{#1}},
+  color/.code    = {\er@addtikz{text=#1}},
+  colour/.forward to = /er/note/color,
+}
+\NewDocumentCommand\er@cmd@note{O{} d() m}{%
+  \er@tikz{}\pgfqkeys{/er/note}{#1}\er@usetikz
+  \IfNoValueTF{#2}{\node[er note, er@user] {#3};}%
+                  {\node[er note, er@user] at (#2) {#3};}}
+
+% \subdomain[color=blue!60, dotted, fill=blue!5]{Label}{(x1,y1) (x2,y2) ...}
+%   two points = opposite corners of a rectangle, more = polygon.
+%   The label box hangs from the first point (down and to the right).
+\pgfkeys{
+  /er/subdomain/.is family, /er/subdomain,
+  .unknown/.code   = {\er@forward{#1}},
+  color/.store in  = \er@sdcolor,
+  colour/.forward to = /er/subdomain/color,
+  dotted/.code     = {\er@ifeq{#1}{false}{\def\er@sddots{0}}{\def\er@sddots{1}}},
+  dotted/.default  = true,
+  fill/.store in   = \er@sdfill,
+}
+\NewDocumentCommand\er@cmd@subdomain{O{} m m}{%
+  \begingroup
+  \er@tikz{}\edef\er@sdcolor{\er@val{subdomain color}}%
+  \def\er@sddots{0}\let\er@sdfill\@empty
+  \pgfqkeys{/er/subdomain}{#1}\er@usetikz
+  \er@parsevia{#3}%
+  \ifnum\er@npts=2
+    \edef\er@sdpath{\csname er@pt@1\endcsname rectangle \csname er@pt@2\endcsname}%
+  \else
+    \def\er@sdpath{}\er@k=0
+    \loop\ifnum\er@k<\er@npts \advance\er@k by 1
+      \edef\er@sdpath{\er@sdpath\ifnum\er@k>1 -- \fi\csname er@pt@\the\er@k\endcsname}%
+    \repeat
+    \edef\er@sdpath{\er@sdpath -- cycle}%
+  \fi
+  \begin{pgfonlayer}{background}
+    \er@ifempty{\er@sdfill}{}{%
+      \edef\er@do{\noexpand\fill[\er@sdfill, er@user] \er@sdpath;}\er@do}%
+    \ifnum\er@sddots=1
+      \edef\er@do{\noexpand\fill[pattern=dots, pattern color=\er@sdcolor,
+        er@user] \er@sdpath;}\er@do
+    \fi
+    \edef\er@do{\noexpand\draw[draw=\er@sdcolor,
+      line width=\er@val{subdomain line width}, er@user] \er@sdpath;}\er@do
+    % label box with a tucked-in (chamfered) bottom-right corner
+    \edef\er@first{\csname er@pt@1\endcsname}%
+    \expandafter\er@sdlabelnode\expandafter{\er@first}{#2}{(er@sdlabel)}%
+    \draw[draw=\er@sdcolor, line width=\er@val{subdomain line width},
+          fill=white, line join=round]
+      (er@sdlabel.north west) -- (er@sdlabel.north east)
+      -- ($(er@sdlabel.south east)+(0,\er@val{subdomain tuck})$)
+      -- ($(er@sdlabel.south east)+(-\er@val{subdomain tuck},0)$)
+      -- (er@sdlabel.south west) -- cycle;
+    \expandafter\er@sdlabelnode\expandafter{\er@first}{#2}{}%
+  \end{pgfonlayer}
+  \endgroup}
+
+\def\er@sdlabelnode#1#2#3{%
+  \node[inner xsep=\er@val{subdomain label hpad},
+        inner ysep=\er@val{subdomain label vpad},
+        font=\er@val{subdomain label font}, text=\er@sdcolor,
+        anchor=north west] #3 at #1 {#2};}
+
+% \grid(x1,y1)(x2,y2): helper grid with coordinate labels (background)
+\NewDocumentCommand\er@cmd@grid{r() r()}{\er@grid{#1}{#2}}
+\def\er@grid#1#2{%
+  \begingroup
+  \er@gridcorners#1,#2\@nil
+  \begin{pgfonlayer}{background}
+    \draw[step=1, \er@val{grid color}, very thin]
+      (\er@gxa,\er@gya) grid (\er@gxb,\er@gyb);
+    \foreach \er@gx in {\er@gxa,...,\er@gxb}
+      \foreach \er@gy in {\er@gya,...,\er@gyb}
+        \node[font=\tiny, text=\er@val{grid label color}, inner sep=0pt]
+          at (\er@gx,\er@gy) {\er@gx,\er@gy};
+  \end{pgfonlayer}
+  \endgroup}
+\def\er@gridcorners#1,#2,#3,#4\@nil{%
+  \pgfmathtruncatemacro\er@gxa{min(#1,#3)}\pgfmathtruncatemacro\er@gxb{max(#1,#3)}%
+  \pgfmathtruncatemacro\er@gya{min(#2,#4)}\pgfmathtruncatemacro\er@gyb{max(#2,#4)}}
+% automatic grid over the whole picture (environment option "grid")
+\def\er@autogrid{%
+  \pgfpointanchor{current bounding box}{south west}\pgfgetlastxy\er@ax\er@ay
+  \pgfpointanchor{current bounding box}{north east}\pgfgetlastxy\er@bx\er@by
+  \pgfmathsetmacro\er@ax{floor(\er@ax/1cm)}\pgfmathsetmacro\er@ay{floor(\er@ay/1cm)}%
+  \pgfmathsetmacro\er@bx{ceil(\er@bx/1cm)}\pgfmathsetmacro\er@by{ceil(\er@by/1cm)}%
+  \er@grid{\er@ax,\er@ay}{\er@bx,\er@by}}
+
+%% </shared:extras>
+
+% ====================================================================
+%  7b. RELATIONAL SCHEMAS (written by the desktop editor)
+% ====================================================================
+%  \relation, \relationgroup, \col, \pkey, \fkey and \pfkey only exist inside the environment, so
+%  they can't collide with a document's own, and it needs no other package.
+\NewDocumentEnvironment{relationalschema}{}{%
+  \begin{itemize}\raggedright
+  \let\relation\er@rs@relation\let\relationgroup\er@rs@group
+  \let\col\er@rs@col\let\pkey\er@rs@pkey\let\fkey\er@rs@fkey\let\pfkey\er@rs@pfkey
+}{\end{itemize}}
+\def\er@rs@relation#1#2{\item #1~:~\{(#2)\}}
+\def\er@rs@group#1{\item[]\textbf{#1}}
+\def\er@rs@type#1{\if\relax\detokenize{#1}\relax\else~:~#1\fi}
+\def\er@rs@col#1#2{#1\er@rs@type{#2}}
+\def\er@rs@pkey#1#2{\underline{#1}\er@rs@type{#2}}
+\def\er@rs@fkey#1#2{\textit{#1}\er@rs@type{#2}}
+\def\er@rs@pfkey#1#2{\underline{\textit{#1}}\er@rs@type{#2}}
+
+% ====================================================================
+%  8.  THE ENVIRONMENT AND FILE INPUT
+% ====================================================================
+% things to do at the end of each diagram
+\def\er@atend{\er@forlist{chenlists}\er@placechen
+  \er@placecards\er@placeconstraints\er@forlist{latekeys}\er@drawlatekey}
+% --- attribute lists as ovals (attribute style=chen) ----------------------
+%  Placed at the end of the diagram, when all edges are known:  the free directions
+%  around the node are given out clockwise from the top, in the order of the list; an
+%  oval that would overlap another moves further out.  The parts of a composite
+%  attribute fan out behind it.  name@x/y fixes an oval, relative to what it belongs
+%  to, in cm.  (desktop app: layout.layout_chen, which must stay the same)
+\def\er@deferchen#1#2{%
+  \er@gettype{#1}%
+  \er@ifeq{\er@type}{isa}{\er@rule{attributes attached to the
+    generalisation `#1'}}{}%
+  \global\advance\er@listno by 1
+  \expandafter\gdef\csname\er@reg{chen@\the\er@listno}\endcsname{{#1}{#2}}%
+  \er@remember{chenlists}{\the\er@listno}}
+\def\er@placechen#1{%
+  \expandafter\expandafter\expandafter\er@placechen@
+    \csname\er@reg{chen@#1}\endcsname{#1}}
+\def\er@placechen@#1#2#3{%
+  \begingroup
+  \def\er@owner{#1}\er@listno=#3\relax
+  \er@attrseq{#2}%
+  \let\er@chused\@empty\let\er@chboxes\@empty
+  \expandafter\ifx\csname\er@reg{list@angles@#1}\endcsname\relax\else
+    \edef\er@tmpl{\csname\er@reg{list@angles@#1}\endcsname}%
+    \@for\er@itemb:=\er@tmpl\do{\expandafter\er@chedge\er@itemb\@nil}%
+  \fi
+  \pgfpointanchor{#1}{center}%
+  \pgfmathsetmacro\er@ox{\the\pgf@x}\pgfmathsetmacro\er@oy{\the\pgf@y}%
+  \def\er@chauto{0}%
+  \er@steps{1}{\er@nattrs}{\er@chprepare{##1}}%
+  % as many free directions as there are ovals to place
+  \er@steps{0}{23}{\expandafter\def\csname er@chsel@##1\endcsname{0}}%
+  \er@steps{1}{\er@chauto}{\er@chpick}%
+  \def\er@chj{0}%
+  \er@steps{0}{23}{\er@chgive{##1}}%
+  \def\er@chj{0}%
+  \er@steps{1}{\er@nattrs}{\er@chrow{##1}}%
+  \endgroup}
+\def\er@chedge#1/#2\@nil{\edef\er@chused{\er@chused#2,}}
+% sizes, the parts to fan out, the ovals with a place of their own
+\def\er@chprepare#1{%
+  \setbox0=\hbox{\pgfinterruptpicture\er@val{attr font}\csname er@attrname@#1\endcsname
+    \csname er@attrsuffix@#1\endcsname\endpgfinterruptpicture}%
+  \pgfmathsetmacro\er@tw{\the\wd0/2+2}%
+  \pgfmathsetmacro\er@th{(\the\ht0+\the\dp0)/2+2}%
+  \ifnum\csname er@attrcomposite@#1\endcsname=1
+    \pgfmathsetmacro\er@hw{max(\er@tw,\er@val{attribute minimum width}/2)}%
+    \pgfmathsetmacro\er@hh{max(\er@th,\er@val{attribute minimum height}/2)}%
+  \else
+    \pgfmathsetmacro\er@hw{max(1.41421*\er@tw,\er@val{attribute minimum width}/2)}%
+    \pgfmathsetmacro\er@hh{max(1.41421*\er@th,\er@val{attribute minimum height}/2)}%
+  \fi
+  \expandafter\let\csname er@chhw@#1\endcsname\er@hw
+  \expandafter\let\csname er@chhh@#1\endcsname\er@hh
+  \edef\er@p{\csname er@attrparent@#1\endcsname}%
+  \edef\er@px{\csname er@attrpx@#1\endcsname}%
+  \expandafter\ifx\csname er@chparts@\er@p\endcsname\relax
+    \expandafter\def\csname er@chparts@\er@p\endcsname{0}%
+    \expandafter\def\csname er@chnext@\er@p\endcsname{0}%
+  \fi
+  \ifx\er@px\@empty
+    \ifnum\er@p=0
+      \edef\er@chauto{\the\numexpr\er@chauto+1\relax}%
+    \else
+      \expandafter\edef\csname er@chparts@\er@p\endcsname{%
+        \the\numexpr\csname er@chparts@\er@p\endcsname+1\relax}%
+    \fi
+  \else
+    \ifnum\er@p=0
+      \pgfmathsetmacro\er@cx{\er@ox+\er@px*28.45274}%
+      \pgfmathsetmacro\er@cy{\er@oy+\csname er@attrpy@#1\endcsname*28.45274}%
+      \pgfmathsetmacro\er@ang{Mod(atan2(\csname er@attrpy@#1\endcsname,\er@px),360)}%
+      \edef\er@chused{\er@chused\er@ang,}%
+      \er@chaddbox{#1}%
+    \fi
+  \fi}
+\def\er@chaddbox#1{%
+  \edef\er@chboxes{\er@chboxes\er@cx/\er@cy/\csname er@chhw@#1\endcsname
+    /\csname er@chhh@#1\endcsname,}}
+% the next free direction: the candidate furthest from everything used so far
+\def\er@chpick{%
+  \def\er@bestscore{-1}\def\er@beststep{0}%
+  \er@steps{0}{23}{\er@chtry{##1}}%
+  \pgfmathtruncatemacro\er@cand{Mod(90-15*\er@beststep,360)}%
+  \edef\er@chused{\er@chused\er@cand,}%
+  \expandafter\edef\csname er@chsel@\er@beststep\endcsname{%
+    \the\numexpr\csname er@chsel@\er@beststep\endcsname+1\relax}}
+\def\er@chtry#1{%
+  \pgfmathtruncatemacro\er@cand{Mod(90-15*#1,360)}%
+  \def\er@score{180}%
+  \@for\er@itemb:=\er@chused\do{\ifx\er@itemb\@empty\else
+    \pgfmathsetmacro\er@d{min(Mod(\er@cand-\er@itemb,360),Mod(\er@itemb-\er@cand,360))}%
+    \pgfmathsetmacro\er@score{min(\er@score,\er@d)}\fi}%
+  \ifdim\er@score pt>\dimexpr\er@bestscore pt+0.01pt\relax
+    \let\er@bestscore\er@score\def\er@beststep{#1}\fi}
+% clockwise from the top: the j-th oval to place gets \er@chgiven@j
+\def\er@chgive#1{%
+  \er@steps{1}{\csname er@chsel@#1\endcsname}{%
+    \edef\er@chj{\the\numexpr\er@chj+1\relax}%
+    \pgfmathtruncatemacro\er@cand{Mod(90-15*#1,360)}%
+    \expandafter\let\csname er@chgiven@\er@chj\endcsname\er@cand}}
+% the distance from the centre of oval #1 to its border in direction \er@ang
+\def\er@chradius#1{%
+  \edef\er@hw{\csname er@chhw@#1\endcsname}\edef\er@hh{\csname er@chhh@#1\endcsname}%
+  \ifnum\csname er@attrcomposite@#1\endcsname=1
+    \pgfmathsetmacro\er@r{\er@hw*\er@hh/max(\er@hh*abs(cos(\er@ang)),\er@hw*abs(sin(\er@ang)))}%
+  \else
+    \pgfmathsetmacro\er@r{\er@hw*\er@hh/veclen(\er@hh*cos(\er@ang),\er@hw*sin(\er@ang))}%
+  \fi}
+\def\er@chrow#1{%
+  \edef\er@p{\csname er@attrparent@#1\endcsname}%
+  \edef\er@px{\csname er@attrpx@#1\endcsname}%
+  \ifnum\er@p=0 \def\er@parent{\er@owner}\let\er@bx\er@ox\let\er@by\er@oy
+  \else
+    \def\er@parent{er@kn\the\er@listno @\er@p}%
+    \edef\er@bx{\csname er@chx@\er@p\endcsname}\edef\er@by{\csname er@chy@\er@p\endcsname}%
+  \fi
+  \ifx\er@px\@empty
+    \ifnum\er@p=0
+      \edef\er@chj{\the\numexpr\er@chj+1\relax}%
+      \edef\er@ang{\csname er@chgiven@\er@chj\endcsname}%
+      \pgfpointanchor{\er@owner}{\er@ang}%
+      \pgfmathsetmacro\er@sx{\the\pgf@x}\pgfmathsetmacro\er@sy{\the\pgf@y}%
+    \else
+      \edef\er@j{\csname er@chnext@\er@p\endcsname}%
+      \expandafter\edef\csname er@chnext@\er@p\endcsname{\the\numexpr\er@j+1\relax}%
+      \pgfmathsetmacro\er@ang{\csname er@chang@\er@p\endcsname
+        +(\er@j-(\csname er@chparts@\er@p\endcsname-1)/2)*40}%
+      \er@chradius\er@p
+      \pgfmathsetmacro\er@sx{\er@bx+\er@r*cos(\er@ang)}%
+      \pgfmathsetmacro\er@sy{\er@by+\er@r*sin(\er@ang)}%
+    \fi
+    \er@chradius{#1}%
+    \pgfmathsetmacro\er@t{\er@val{chen dist}+\er@r}%
+    \def\er@tries{0}%
+    \er@chplace{#1}%
+  \else
+    \pgfmathsetmacro\er@cx{\er@bx+\er@px*28.45274}%
+    \pgfmathsetmacro\er@cy{\er@by+\csname er@attrpy@#1\endcsname*28.45274}%
+    \pgfmathsetmacro\er@ang{Mod(atan2(\csname er@attrpy@#1\endcsname,\er@px),360)}%
+    \ifnum\er@p=0 \else\er@chaddbox{#1}\fi
+  \fi
+  \expandafter\let\csname er@chx@#1\endcsname\er@cx
+  \expandafter\let\csname er@chy@#1\endcsname\er@cy
+  \expandafter\let\csname er@chang@#1\endcsname\er@ang
+  \er@chnode{#1}}
+% further out as long as it overlaps an oval placed before
+\def\er@chplace#1{%
+  \pgfmathsetmacro\er@cx{\er@sx+\er@t*cos(\er@ang)}%
+  \pgfmathsetmacro\er@cy{\er@sy+\er@t*sin(\er@ang)}%
+  \def\er@hit{0}%
+  \edef\er@hw{\csname er@chhw@#1\endcsname}\edef\er@hh{\csname er@chhh@#1\endcsname}%
+  \@for\er@itemb:=\er@chboxes\do{\ifx\er@itemb\@empty\else
+    \expandafter\er@chhit\er@itemb\@nil\fi}%
+  \ifnum\er@hit=1
+    \ifnum\er@tries<24
+      \edef\er@tries{\the\numexpr\er@tries+1\relax}%
+      \pgfmathsetmacro\er@t{\er@t+8.53582}%
+      \er@chplace{#1}%
+    \else\er@chaddbox{#1}\fi
+  \else\er@chaddbox{#1}\fi}
+\def\er@chhit#1/#2/#3/#4\@nil{%
+  \pgfmathtruncatemacro\er@test{and(abs(\er@cx-#1)<\er@hw+#3,abs(\er@cy-#2)<\er@hh+#4)}%
+  \ifnum\er@test=1 \def\er@hit{1}\fi}
+\def\er@chnode#1{%
+  \er@tikz{}%
+  \ifnum\csname er@attrderived@#1\endcsname=1 \er@addtikz{dashed}\fi
+  \ifnum\csname er@attrmulti@#1\endcsname=1 \er@addtikz{double, double distance=1.5pt}\fi
+  \er@usetikz
+  \ifnum\csname er@attrcomposite@#1\endcsname=1
+    \def\er@astyle{er composite attribute}\else\def\er@astyle{er attribute}\fi
+  \edef\er@name{er@kn\the\er@listno @#1}%
+  \ifnum\csname er@attrkey@#1\endcsname=1
+    \expandafter\xdef\csname\er@reg{aown@\er@name}\endcsname{\er@owner}%
+    \def\er@label{\er@latekey{\er@name}{\csname er@attrname@#1\endcsname}%
+      {\csname er@attrsuffix@#1\endcsname}}%
+  \else
+    \def\er@label{\csname er@attrname@#1\endcsname\csname er@attrsuffix@#1\endcsname}%
+  \fi
+  \node[\er@astyle, er@user] (\er@name) at (\er@cx pt,\er@cy pt) {\er@label};
+  \draw[er edge] (\er@parent) -- (\er@name);}
+% --- keys that may be partial --------------------------------------------
+%  The key of a weak entity type has a dashed underline, unless that depends on
+%  E alone: then it's globally unique.  What an entity depends on is often only
+%  known after its attributes, so these underlines are drawn at the end of the
+%  diagram.  #1: name of the node, #2: the key, #3: what follows it.
+\newcount\er@lkn
+\def\er@latekey#1#2#3{%
+  \sbox0{#2}\sbox2{#3}%
+  \global\advance\er@lkn by 1
+  \xglobal\colorlet{er@lkc\the\er@lkn}{.}%
+  \expandafter\xdef\csname\er@reg{lk@#1}\endcsname{%
+    {\the\er@lkn}{\the\wd0}{\the\wd2}{\the\dp0}}%
+  \er@remember{latekeys}{#1}%
+  \usebox0\usebox2}
+% -> \er@kowner: the element owning attribute #1 (through composite attributes)
+\def\er@findowner#1{%
+  \edef\er@kowner{#1}\count@=0
+  \loop
+    \advance\count@ by 1
+    \expandafter\ifx\csname\er@reg{aown@\er@kowner}\endcsname\relax
+      \count@=9
+    \else
+      \edef\er@kowner{\csname\er@reg{aown@\er@kowner}\endcsname}%
+    \fi
+  \ifnum\count@<9 \repeat}
+\def\er@drawlatekey#1{%
+  \expandafter\expandafter\expandafter\er@drawlatekey@
+    \csname\er@reg{lk@#1}\endcsname{#1}}
+\def\er@drawlatekey@#1#2#3#4#5{%
+  \def\er@keydash{solid}%
+  \er@findowner{#5}%
+  \er@gettype\er@kowner
+  \er@ifeq{\er@type}{entity}{\er@ifflag{weak@\er@kowner}{%
+    \def\er@keydash{er partial key}%
+    % double links, if there are any: over the others it can be the owner of something else
+    \expandafter\ifx\csname\er@reg{wdbl@\er@kowner}\endcsname\relax
+      \def\er@kdep{wdep}\else\def\er@kdep{wdbl}\fi
+    \expandafter\ifx\csname\er@reg{\er@kdep @\er@kowner}\endcsname\relax\else
+      \er@ifeq{\csname\er@reg{\er@kdep @\er@kowner}\endcsname}{E}{\def\er@keydash{solid}}{}%
+    \fi}{}}{}%
+  \pgfmathsetlengthmacro\er@xa{-(#2+#3)/2}%
+  \pgfmathsetlengthmacro\er@xb{\er@xa+#2}%
+  \pgfmathsetlengthmacro\er@ya{-#4-1.4pt}%
+  \draw[line width=0.4pt, draw=er@lkc#1, \er@keydash]
+    ($(#5.base)+(\er@xa,\er@ya)$) -- ($(#5.base)+(\er@xb,\er@ya)$);}
+\def\er@placeconstraints{\er@forlist{isacons}\er@placeconstraint}
+\def\er@placeconstraint#1{%
+  \er@ifeq{\er@val{constraint style}}{words}{\er@sidesonlytrue}{\er@sidesonlyfalse}%
+  \er@bestdir{#1}\er@sidesonlyfalse
+  \node[er constraint, anchor=\er@oppanchor] at (#1.\er@bestpos)
+    {\csname\er@reg{cons@#1}\endcsname};}
+\def\er@localcommands{%
+  \let\entity\er@cmd@entity
+  \let\relationship\er@cmd@relationship
+  \let\isa\er@cmd@isa
+  \let\canbe\er@cmd@canbe
+  \let\partof\er@cmd@partof
+  \let\attribute\er@cmd@attribute
+  \let\attributes\er@cmd@attributes
+  \let\link\er@cmd@link
+  \let\point\er@cmd@point
+  \let\note\er@cmd@note
+  \let\subdomain\er@cmd@subdomain
+  \let\grid\er@cmd@grid
+  \let\setup\er@setup}
+
+%% <shared:environment> -- maintained in erdiagram.sty, copied by tools/sync_shared.py
+\newsavebox\er@box
+% sans serif: also for a \normalfont in the fonts of labels.  It follows \ersetup, the
+% options and \setup, and only takes effect within a diagram.
+\def\er@applysans{%
+  \er@ifeq{\er@val{sans serif}}{true}%
+    {\let\familydefault\sfdefault\def\er@sanson{1}\fontfamily{\familydefault}\selectfont}%
+    {\ifx\er@sanson\@empty\else
+       \let\familydefault\er@origfamily\let\er@sanson\@empty
+       \fontfamily{\familydefault}\selectfont
+     \fi}}
+\def\er@setup#1{\ersetup{#1}\er@applysans}
+\pgfkeys{
+  /er/env/.is family, /er/env,
+  grid/.code       = {\er@ifeq{#1}{false}{\def\er@envgrid{0}}{\def\er@envgrid{1}}},
+  grid/.default    = true,
+  width/.store in  = \er@envwidth,
+  height/.store in = \er@envheight,
+  max width/.store in = \er@envmaxwidth,
+  max height/.store in = \er@envmaxheight,
+  scale/.store in  = \er@envscale,
+  checks/.code     = {\er@ifeq{#1}{false}{\def\er@envchecks{0}}{\def\er@envchecks{1}}},
+  checks/.default  = true,
+  % style keys (\ersetup) are accepted, everything else goes to TikZ
+  .unknown/.code   = {%
+    \pgfkeysifdefined{/er/\pgfkeyscurrentname/.@cmd}{\er@envpass{#1}}{%
+    \pgfkeysifdefined{/er/\pgfkeyscurrentname}{\er@envpass{#1}}%
+      {\er@forward{#1}}}},
+}
+\def\er@novalue{\pgfkeysnovalue}
+\def\er@envpass#1{\def\er@tmpv{#1}%
+  \ifx\er@tmpv\er@novalue
+    \edef\er@tmp{\noexpand\pgfqkeys{/er}{\pgfkeyscurrentname}}%
+  \else
+    \edef\er@tmp{\noexpand\pgfqkeys{/er}{\pgfkeyscurrentname={\unexpanded{#1}}}}%
+  \fi\er@tmp}
+\def\er@begin#1{%
+  \global\advance\er@diagramno by 1
+  \er@tikz{}\def\er@envgrid{0}\def\er@envchecks{1}%
+  \let\er@envwidth\@empty\let\er@envheight\@empty
+  \let\er@envmaxwidth\@empty\let\er@envmaxheight\@empty\let\er@envscale\@empty
+  \pgfqkeys{/er/env}{#1}%
+  \let\er@origfamily\familydefault\let\er@sanson\@empty
+  \er@applysans
+  \tikzset{er@env/.style/.expanded={\the\er@tikz}}%
+  \er@localcommands
+  \def\er@resize{0}%
+  \er@ifemptyx{\er@envwidth\er@envheight\er@envmaxwidth\er@envmaxheight\er@envscale}{}%
+    {\def\er@resize{1}}%
+  \ifnum\er@resize=1 \begin{lrbox}{\er@box}\fi
+  % "every path" is reset: some packages (e.g. figchild) make every \path
+  % visible, which would draw our invisible helper paths
+  \begin{tikzpicture}[every path/.style={}, er@env]}
+\def\er@end{%
+  \er@atend
+  \ifnum\er@envgrid=1 \er@autogrid\fi
+  \ifnum\er@envchecks=1 \er@finalchecks\fi
+  \end{tikzpicture}%
+  \ifnum\er@resize=1
+    \end{lrbox}%
+    \er@fitbox
+  \fi}
+\newdimen\er@dima
+% scale the finished picture: width/height set the size, "max width" and
+% "max height" only shrink (the aspect ratio is always kept)
+\def\er@fitbox{%
+  \dimen@=\ht\er@box \advance\dimen@ by \dp\er@box
+  \dimen@ii=\wd\er@box
+  \def\er@scale{1}%
+  \er@ifempty{\er@envscale}{}{\let\er@scale\er@envscale}%
+  \er@ifempty{\er@envmaxwidth}{}{\setlength\er@dima{\er@envmaxwidth}%
+    \pgfmathsetmacro\er@scale{min(\er@scale,\the\er@dima/\the\dimen@ii)}}%
+  \er@ifempty{\er@envmaxheight}{}{\setlength\er@dima{\er@envmaxheight}%
+    \pgfmathsetmacro\er@scale{min(\er@scale,\the\er@dima/\the\dimen@)}}%
+  \er@ifempty{\er@envwidth}{}{\setlength\er@dima{\er@envwidth}%
+    \pgfmathsetmacro\er@scale{\the\er@dima/\the\dimen@ii}}%
+  \er@ifempty{\er@envheight}{}{\setlength\er@dima{\er@envheight}%
+    \pgfmathsetmacro\er@scale{\the\er@dima/\the\dimen@}}%
+  \scalebox{\er@scale}{\usebox\er@box}}
+
+\NewDocumentEnvironment{erdiagram}{O{}}{\er@begin{#1}}{\er@end}
+
+% \inputerdiagram[<environment options>]{<file>}
+%   The file contains only the body of an erdiagram environment.
+\NewDocumentCommand\inputerdiagram{O{} m}{%
+  \IfFileExists{#2}%
+    {\begin{erdiagram}[#1]\input{#2}\end{erdiagram}}%
+    {\PackageError{erdiagram}{Diagram file `#2' not found}%
+      {Check the path; it is relative to the main document.}}}
+
+%% </shared:environment>
+
+\endinput

@@ -1,0 +1,1002 @@
+% Finds the package and the example diagrams, also when compiled directly in an editor:
+\makeatletter\def\input@path{{../}{../../desktop_app_rust/samples/}}\makeatother
+\documentclass[10pt,a4paper]{article}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{erdiagram}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{listings}
+\usepackage{booktabs,array,longtable}
+\usepackage{hyperref}
+\hypersetup{colorlinks, linkcolor=blue!50!black, urlcolor=blue!50!black}
+
+\lstdefinestyle{erd}{
+  language=[LaTeX]TeX, basicstyle=\ttfamily\footnotesize, columns=fullflexible,
+  keepspaces, commentstyle=\color{gray}\itshape,
+  texcsstyle=*\color{blue!60!black}, keywordstyle=\color{blue!60!black},
+  moretexcs={entity,relationship,isa,canbe,partof,attribute,attributes,link,
+    point,note,subdomain,grid,setup,inputerdiagram,ersetup},
+  literate={→}{{$\rightarrow$}}1,
+}
+\lstset{style=erd}
+\newtcblisting{example}{enhanced, listing side text, colback=white,
+  colframe=black!25, boxrule=0.5pt, arc=1pt, lefthand width=0.48\linewidth,
+  listing options={style=erd}, halign lower=center, valign lower=center,
+  before skip=6pt, after skip=8pt}
+\newtcblisting{wideexample}{enhanced, listing above text, colback=white,
+  colframe=black!25, boxrule=0.5pt, arc=1pt, listing options={style=erd},
+  halign lower=center, before skip=6pt, after skip=8pt}
+\newcommand\cs[1]{\texttt{\textbackslash#1}}
+\newcommand\key[1]{\texttt{#1}}
+\newcommand\meta[1]{\textlangle\textit{#1}\textrangle}
+\newcommand\opt[1]{\texttt{[}#1\texttt{]}}
+
+\title{\textbf{erdiagram} --- ER diagrams for \LaTeX\\[2pt]
+  \large with n-notation, min-max cardinalities or crow's foot symbols, version 3.0.2}
+\author{Leunami52}
+\date{2026-11-07}
+
+\begin{document}
+\maketitle
+\begin{center}\small Distributed under the \LaTeX\ Project Public License, version 1.3c or later.\end{center}
+\tableofcontents
+
+% =====================================================================
+\section{Introduction}
+
+\texttt{erdiagram} draws entity--relationship diagrams in the classic
+style (diamonds for relationship types, attribute lists or Chen's ovals),
+extended by a few useful constructs. It is built on TikZ, but you never have to write TikZ
+yourself: a diagram is a list of short, declarative commands inside an
+\texttt{erdiagram} environment.
+
+\paragraph{Installation.} Copy \texttt{erdiagram.sty} next to your
+document and load it with \verb|\usepackage{erdiagram}|. The package needs
+only TikZ, which is part of every \TeX\ distribution. It can be loaded
+together with its sister package \texttt{gsmdiagram}.
+
+\paragraph{No name clashes.} The package defines only four public
+names: \cs{inputerdiagram}, \cs{ersetup} and the environments \texttt{erdiagram}
+and \texttt{relationalschema}. The short diagram commands (\cs{entity}, \cs{link},
+\cs{note}, \dots) exist \emph{only inside} the environment, so they never
+interfere with the rest of your document.
+
+\begin{example}
+\begin{erdiagram}
+  \entity{building}(0,0){Building}
+  \relationship[dependency=Id]{has}(3,0){has}
+  \entity[weak]{room}(6,0){Room}
+  \link{building}{has}{1}
+  \link[double]{has}{room}{n}
+  \attributes[anchor=north]{building}
+    {*buildingID, address}
+  \attributes[anchor=north]{room}
+    {*roomNo, size}
+\end{erdiagram}
+\end{example}
+
+Every command follows the same pattern
+\[
+  \cs{command}\opt{\meta{options}}\{\meta{id}\}(\meta{x},\meta{y})\{\meta{label}\}
+\]
+where the \meta{id} is the internal name used to connect elements, the
+optional position $(x,y)$ is a TikZ coordinate (in cm) and the
+\meta{label} is what is printed. Options are \texttt{key=value} pairs;
+options the package does not know are passed on to TikZ, so everything
+TikZ offers is still available.
+
+% =====================================================================
+\section{New in version 3.0}
+
+Diagrams from earlier versions keep compiling. These changes show in them:
+
+\begin{itemize}
+\item IS\_A and CAN\_BE are hexagons; \verb|\ersetup{isa shape=diamond}| brings back the
+  diamonds (section~\ref{sec:generalisation}).
+\item The aggregation is labelled PART\_OF in capitals, and keys of weak entity types are dashed
+  unless they depend on E alone.
+\end{itemize}
+
+And these are new:
+
+\begin{itemize}
+\item Cardinalities: n-notation and min-max with a defined meaning, and crow's foot symbols
+  (section~\ref{sec:links}). The older forms \texttt{m}, \texttt{mc} and \texttt{[a,b]} keep working.
+\item Composite, multi-valued and derived attributes in lists, further candidate keys, and lists drawn as
+  ovals (section~\ref{sec:attributes}).
+\item The types of a generalisation as words (section~\ref{sec:generalisation}).
+\item \texttt{sans serif}, a real \texttt{scale}, and labels that follow the language of the document
+  (section~\ref{sec:settings}).
+\item The environment \texttt{relationalschema} for relational schemas (section~\ref{sec:rm}).
+\end{itemize}
+
+\section{The environment}
+
+\begin{center}
+\verb|\begin{erdiagram}[|\meta{options}\verb|] ... \end{erdiagram}|
+\end{center}
+
+\begin{longtable}{@{}>{\ttfamily}p{3.3cm}p{12.5cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+grid & draws a labelled coordinate grid behind the whole diagram (a
+  drafting aid for finding positions)\\
+width=\meta{dim} & scales the finished diagram to this width\\
+height=\meta{dim} & scales the finished diagram to this height\\
+max width=\meta{dim} & shrinks the diagram if it is wider (never enlarges)\\
+max height=\meta{dim} & shrinks the diagram if it is higher\\
+scale=\meta{factor} & scales the finished diagram with its nodes, text and lines
+  (section~\ref{sec:settings})\\
+checks=false & switches off the rule checks at the end of the diagram
+  (Section~\ref{sec:rules})\\
+\meta{style key} & any key of \cs{ersetup} (Section~\ref{sec:style}),
+  valid for this diagram only\\
+\meta{TikZ option} & anything else is a \texttt{tikzpicture} option,
+  e.g.\ \texttt{baseline}, \texttt{node distance=2cm}\\
+\bottomrule
+\end{longtable}
+
+Positions can be given as absolute coordinates \verb|(x,y)|, as TikZ
+expressions like \verb|($(a)+(2,1)$)|, or with the TikZ positioning keys
+as options, e.g.\ \verb|\entity[right=2cm of a]{b}{B}|. Inside the
+environment, \cs{setup}\verb|{...}| changes style keys for the rest of
+the diagram, and arbitrary TikZ commands (\cs{draw}, \cs{node}, \dots)
+may be mixed in.
+
+\begin{example}
+\begin{erdiagram}[grid, scale=0.8,
+                  card placement=beside]
+  \entity{a}(0,0){A}
+  \relationship{r}(3,1){R}
+  \entity{b}(6,0){B}
+  \link{a}{r}{1}
+  \link{r}{b}{cn}
+\end{erdiagram}
+\end{example}
+
+% =====================================================================
+\section{Diagrams in external files}\label{sec:files}
+
+\begin{center}
+\verb|\inputerdiagram[|\meta{environment options}\verb|]{|\meta{file}\verb|}|
+\end{center}
+
+The file contains only the \emph{body} of an \texttt{erdiagram}
+environment, i.e.\ the lines between \verb|\begin{erdiagram}| and
+\verb|\end{erdiagram}|. This is the format written by the desktop
+editor, so diagrams can be edited graphically and included in a document
+without copying any code. The recommended file extension is
+\texttt{.erd}. Paths are relative to the main document; with the
+\texttt{subfiles} package use \verb|\inputerdiagram{\subfix{diagram.erd}}|.
+
+\begin{lstlisting}
+% file: university.erd -- body of an erdiagram environment
+\entity{student}(0,0){Student}
+\relationship{attends}(3.5,0){attends}
+\entity{course}(7,0){Course}
+\link{student}{attends}{cn}
+\link{attends}{course}{n}
+\end{lstlisting}
+
+\begin{example}
+\inputerdiagram[width=0.9\linewidth]
+  {university.erd}
+\end{example}
+
+\paragraph{Rules for files that the editor should be able to read
+back.} One command per line; positions as absolute coordinates
+\verb|(x,y)|; options as \texttt{key=value} pairs (values containing
+commas in braces); \% comments are allowed. Plain TikZ code works in a
+file as well, but the editor will not be able to edit it graphically.
+
+% =====================================================================
+\section{Entities}
+
+\begin{center}
+\verb|\entity[|\meta{options}\verb|]{|\meta{id}\verb|}(|\meta{x,y}\verb|){|\meta{label}\verb|}|
+\end{center}
+
+\begin{longtable}{@{}>{\ttfamily}p{3.3cm}p{12.5cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+weak & weak entity type (double border)\\
+color=\meta{colour} & background colour. A plain colour name is used as a
+  light tint (\texttt{blue} $\to$ \texttt{blue!20}); a full xcolor
+  expression such as \texttt{orange!35} is used as is\\
+\meta{TikZ option} & e.g.\ \texttt{minimum width=4cm}, \texttt{draw=red},
+  \texttt{right=of x}\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{a}(0,0){Entity}
+  \entity[weak]{b}(3.2,0){Weak entity}
+  \entity[color=blue]{c}(0,-1.5){Tinted}
+  \entity[weak, color=orange!35]{d}(3.2,-1.5)
+     {Two\\lines}
+  \entity[minimum width=1cm, draw=red]{e}
+     (1.6,-3){Small}
+\end{erdiagram}
+\end{example}
+
+% =====================================================================
+\section{Relationships}
+
+\begin{center}
+\verb|\relationship[|\meta{options}\verb|]{|\meta{id}\verb|}(|\meta{x,y}\verb|){|\meta{label}\verb|}|
+\end{center}
+
+\begin{longtable}{@{}>{\ttfamily}p{3.3cm}p{12.5cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+weak & weak relationship type (double border)\\
+dependency=E & existence dependency: double border and a red
+  \textbf{E} above the name. The weak entity's own key is unique everywhere, so it stays
+  solidly underlined\\
+dependency=Id & identification dependency, which includes existence dependency: double border
+  and a red \textbf{Id} above the name. The weak entity's key is only unique together with its
+  owner's, so it is underlined with dashes\\
+color=\meta{colour} & background colour, as for entities\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{erdiagram}
+  \relationship{r1}(0,0){owns}
+  \relationship[weak]{r2}(2.5,0){has}
+  \relationship[dependency=E]{r3}(0,-1.8){has}
+  \relationship[dependency=Id]{r4}(2.5,-1.8)
+     {has}
+  \relationship[color=yellow]{r5}(1.25,-3.6)
+     {is under\\treatment}
+\end{erdiagram}
+\end{example}
+
+Relationships may have any arity; just link all participating entities:
+
+\begin{example}
+\begin{erdiagram}
+  \entity{test}(0,1.5){Test}
+  \entity{doctor}(5,1.5){Doctor}
+  \entity{patient}(2.5,-1.8){Patient}
+  \relationship{reg}(2.5,0){registered}
+  \link{test}{reg}{n}
+  \link{doctor}{reg}{1}
+  \link{patient}{reg}{n}
+  \attributes{reg}{date}
+\end{erdiagram}
+\end{example}
+
+% =====================================================================
+\section{Links and cardinalities}\label{sec:links}
+
+\begin{center}
+\verb|\link[|\meta{options}\verb|]{|\meta{from}\verb|}{|\meta{to}\verb|}{|\meta{cardinality}\verb|}|
+\end{center}
+
+The cardinality argument is optional. By default it sits \emph{on} the
+middle of the edge, on a white background. Any text is printed as given, but two
+notations have a defined meaning, also for the relational schema of the desktop
+editor (section~\ref{sec:rm}):
+
+\begin{description}
+\item[n-notation] \texttt{1} (exactly one), \texttt{c} (at most one), \texttt{n}
+  (one or more), \texttt{cn} (any number). The label says how many entities of
+  the type \emph{at its end of the edge} one partner has: ``Halter \texttt{1} --
+  \texttt{n} Hund'' means each Hund has exactly one Halter.
+\item[min-max notation] $(\min,\max)$, such as \texttt{(1,*)} or \texttt{(0,1)}: how
+  often an entity \emph{of the type at its end} takes part. So the same fact is
+  written ``Halter \texttt{(1,*)} -- \texttt{(1,1)} Hund'': the values sit at the opposite ends.
+  \texttt{(·,*)} stands for an unknown minimum.
+\end{description}
+
+For relationships of a higher degree the two are not just flipped: \texttt{1} says
+that the combination of all other sides determines this one, while $(\min,\max)$ only
+counts how often one entity takes part. Older forms (\texttt{m}, \texttt{mc},
+\texttt{[3,4]}) keep working.
+
+\paragraph{Crow's foot symbols.} With \texttt{card symbols=crowsfoot} (an environment
+option, or \cs{setup}, or \cs{ersetup} for all diagrams), n-notation is drawn as symbols at the
+entity end of the edge, with the same meaning: \texttt{1} is two bars, \texttt{c} a circle and
+a bar, \texttt{n} a bar and a fork, \texttt{cn} a circle and a fork. Only the labels are replaced:
+diamonds and attributes stay, so relationships of a higher degree keep working. The edge
+meets the side of the entity at a right angle: it ends in a short straight piece, which carries
+the symbol, and the rest of the edge leads to that. All other labels stay text.
+
+\begin{example}
+\begin{erdiagram}[card symbols=crowsfoot]
+  \entity[minimum width=1.6cm]{a}(0,0){Halter}
+  \relationship{r}(2.7,0){besitzt}
+  \entity[minimum width=1.6cm]{b}(5.4,0){Hund}
+  \link{a}{r}{1}
+  \link{r}{b}{n}
+  \entity[minimum width=1.6cm]{c}(0,-2){Labor}
+  \relationship{s}(2.7,-2){leitet}
+  \entity[minimum width=1.6cm]{d}(5.4,-2){Forscher}
+  \link{c}{s}{c}
+  \link{s}{d}{cn}
+\end{erdiagram}
+\end{example}
+
+\begin{example}
+\begin{erdiagram}[card symbols=crowsfoot]
+  \entity[minimum width=1.6cm]{a}(0,0){Halter}
+  \relationship{r}(2.7,1.5){besitzt}
+  \entity[minimum width=1.6cm]{b}(5.4,0){Hund}
+  \link{a}{r}{1}
+  \link{r}{b}{n}
+\end{erdiagram}
+\end{example}
+
+\paragraph{Cardinalities beside the edge.} With
+\texttt{card placement=beside} -- as an environment option for one
+diagram, with \verb|\ersetup{card placement=beside}| for all diagrams,
+or as the link option \texttt{beside} for a single edge -- the
+cardinality is printed next to the \emph{entity} end of the edge, no matter in which order \meta{from} and \meta{to}
+are given. With \texttt{card side=auto} it is placed on the side of its
+edge with more free room: the package looks at all edges and attribute
+trees leaving the same entity. If there is plenty of room on both sides
+it prefers the position \emph{above} a flat edge and \emph{right} of a
+steep one. The label never crosses its edge and is pushed outwards along
+the edge until it does not overlap its entity.
+
+\begin{example}
+\begin{erdiagram}[card placement=beside,
+                  max width=\linewidth]
+  \entity{p}(0,0){Person}
+  \relationship{lives}(3,1.3){lives}
+  \relationship{born}(3,-1.3){born}
+  \entity{c}(6,0){City}
+  \link{p}{lives}{n}
+  \link{lives}{c}{n}
+  \link{p}{born}{n}
+  \link{born}{c}{1}
+  \attributes[anchor=north, xshift=-0.6cm,
+    side=left]{p}{name, insurance number}
+  \attributes[anchor=north east]{c}
+    {zip code, name, population}
+  \attributes[anchor=south]{born}
+    {date of birth}
+\end{erdiagram}
+\end{example}
+
+\begin{longtable}{@{}>{\ttfamily}p{3.6cm}p{12.2cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+beside & this edge's cardinality next to the entity
+  (\texttt{card placement=beside} does this for a whole diagram)\\
+inline & this edge's cardinality on the middle of the edge (the default)\\
+card side=\meta{side} & beside placement: \texttt{auto} (default),
+  \texttt{above}, \texttt{below}, \texttt{left} or \texttt{right}\\
+card dist=\meta{dim} & beside placement: distance from the entity border
+  (default 0.3cm)\\
+card pos=\meta{fraction} & position along the edge (0 = start, 1 = end),
+  overrides \texttt{card dist}\\
+role=\meta{text} & role name (needed for recursive relationships)\\
+role side=\meta{side}, role pos & side and position (fraction) of the
+  role name\\
+bend=\meta{angle} & curved edge; positive bends to the left, negative to
+  the right (seen in the direction of the edge)\\
+via=\{(x,y) (x,y) \dots\} & route through way points\\
+ortho=-| \textrm{or} |- & right-angled edge (horizontal-then-vertical or
+  vice versa)\\
+arrow & draw an arrow head at the \meta{to} end\\
+double & double line. Good practice for the link between a weak
+  relationship (weak, E or Id) and its weak entity, so that the chain of
+  dependencies is visible. If a weak relationship joins two weak entities, only the link to
+  the dependent one is double, which is how the desktop editor knows who depends on whom.
+  The package warns if a double line joins
+  anything else\\
+\meta{TikZ option} & e.g.\ \texttt{bend left=30}, \texttt{out=90, in=180},
+  \texttt{looseness=1.5}, \texttt{dashed}, \texttt{thick}\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{e}(0,0){Employee}
+  \relationship{sup}(4,0){is super-\\visor of}
+  \link[role=supervisor, bend=25]{e}{sup}{1}
+  \link[role=employee, bend=-25,
+        role side=below]{e}{sup}{n}
+\end{erdiagram}
+\end{example}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{a}(0,0){A}
+  \relationship{r}(4,1.8){R}
+  \entity{b}(4,-1.5){B}
+  \link[ortho=|-, beside]{a}{r}{(0,n)}
+  \link[via={(6,1.8) (6,-1.5)}]{r}{b}{(1,1)}
+  \relationship{s}(0,-2.5){S}
+  \link{a}{s}{c}
+  \link[bend=-30, beside]{s}{b}{cn}
+\end{erdiagram}
+\end{example}
+
+Edges can start at a particular anchor of a node
+(\verb|\link{a.north east}{r}|), and \cs{point}\verb|{|\meta{id}\verb|}(x,y)|
+creates an invisible junction to which several edges can be routed.
+
+% =====================================================================
+\section{Attributes}\label{sec:attributes}
+
+\subsection{Attribute trees}
+
+\begin{center}
+\verb|\attributes[|\meta{options}\verb|]{|\meta{node}\verb|}{|\meta{attribute}\verb|, |\meta{attribute}\verb|, ...}|
+\end{center}
+
+The list is printed top to bottom. A leading \texttt{*} marks a key
+attribute (underlined). Put an attribute in braces if it contains a
+comma; any formatting is allowed.
+
+\begin{longtable}{@{}>{\ttfamily}p{3.6cm}p{12.2cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+anchor=\meta{anchor} & where the tree leaves the node: any TikZ anchor
+  (\texttt{north}, \texttt{south east}, \dots) or an angle
+  (\texttt{60}). Default: \texttt{east}\\
+dir=\meta{direction} & \texttt{up}/\texttt{down}: vertical trunk with
+  ticks; \texttt{left}/\texttt{right}: short stem and a vertical bar.
+  Default: taken from the anchor\\
+side=\meta{side} & trunk layout (\texttt{left} or \texttt{right}): on which side the labels are. Default:
+  left for anchors containing \texttt{west}, right otherwise\\
+align=\meta{where} & bar layout: where the stem meets the bar
+  (\texttt{center}, \texttt{top} or \texttt{bottom})\\
+spread, gap, tick, stem & distances between attributes, from the node to
+  the first attribute, tick length, stem length\\
+xshift, yshift & move the start of the tree\\
+\meta{TikZ option} & applied to the attribute labels, e.g.\
+  \texttt{font=\textbackslash scriptsize}, \texttt{text=blue}\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{e}(0,0){Entity}
+  \attributes[anchor=north]{e}{*north, up}
+  \attributes[anchor=south]{e}{south, down}
+  \attributes[anchor=east]{e}{east, bar, right}
+  \attributes[anchor=west]{e}{west, bar, left}
+  \attributes[anchor=north east]{e}{NE}
+  \attributes[anchor=north west]{e}{NW}
+  \attributes[anchor=south east]{e}{SE}
+  \attributes[anchor=south west]{e}{SW}
+\end{erdiagram}
+\end{example}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{e}(0,0){Employee}
+  \attributes[anchor=north, xshift=-0.9cm,
+    side=left]{e}{*empNo, name}
+  \attributes[anchor=south, xshift=-0.9cm]{e}
+    {{job, current}, \textit{salary}}
+  \attributes[anchor=east, align=top]{e}
+    {top, aligned}
+  \relationship{r}(4,0){works}
+  \attributes[anchor=north]{r}{since}
+  \attributes[anchor=-60, text=blue]{r}
+    {at -60 degrees}
+\end{erdiagram}
+\end{example}
+
+\subsection{Composite, multi-valued and derived attributes}
+
+Lists can hold all kinds of attributes. Parts follow their attribute in braces;
+a multi-valued attribute is written \verb|\{email\}| and a derived one \verb|/age|. A
+derived attribute can also say how it is computed (\verb|/age = {2026 - born}|), which only
+the relational schema of the desktop editor uses. Other braces keep their meaning:
+\verb|\textit{x}|, \verb|$x_{i}$| and \verb|ratio 1{:}2| are one name each.
+
+\begin{example}
+\begin{erdiagram}
+  \entity{p}(0,0){Person}
+  \attributes{p}{*PID, address{street, town},
+    \{email\}, /age = {2026 - born}, born}
+\end{erdiagram}
+\end{example}
+
+\subsection{Further candidate keys}
+
+An entity type can have several candidate keys, of which one is drawn as its key.
+Mark the others with a plus: \verb|+email|. Nothing of this is drawn; the desktop
+editor makes them \texttt{UNIQUE} constraints. A name that starts with a number, such as \verb|+49 phone|,
+stays a name. In an oval, it's the option \texttt{unique}.
+
+\subsection{Keys of weak entity types}
+
+The key of a weak entity type is only unique together with its owner, and is
+drawn with a dashed underline, without anything to set: for the attributes of an
+\cs{entity}\texttt{[weak]}, in a list as well as in an oval. It stays solid if the entity
+depends on \texttt{dependency=E} alone, since that key is unique by itself. If an entity has
+double-lined links, only those say what it depends on, so being the owner of another weak entity
+over a single line doesn't change its key. The line is drawn at the end of the diagram, when all
+links are known.
+
+\begin{example}
+\begin{erdiagram}
+  \relationship[dependency=Id]{r}(0,0){has}
+  \entity[weak]{a}(2.8,0){Room}
+  \attributes[anchor=north]{a}{*number, seats}
+  \link[double]{r}{a}{n}
+  \relationship[dependency=E]{s}(0,-2.6){has}
+  \entity[weak]{b}(2.8,-2.6){Copy}
+  \attributes[anchor=north]{b}{*number, seats}
+  \link[double]{s}{b}{n}
+\end{erdiagram}
+\end{example}
+
+\subsection{Lists as ovals}
+\label{sec:chenlists}
+
+\texttt{attribute style=chen} draws every list as ovals, in Chen's notation, from the
+same file. They are placed at the end of the diagram, in the directions around the node
+that are furthest from its edges, clockwise from the top in the order of the list.
+A composite attribute is a rounded box with its parts fanned out behind it. To fix an oval,
+add its position in cm after the name, relative to what it belongs to:
+\verb|name@2/1|. The desktop editor does that when an oval is dragged. Compact lists
+ignore these positions, so a file can go back and forth.
+
+\begin{example}
+\begin{erdiagram}[attribute style=chen]
+  \entity{p}(0,0){Person}
+  \attributes{p}{*PID, name, address{street, town},
+    \{email\}, /age}
+\end{erdiagram}
+\end{example}
+
+\subsection{Chen-style attributes}
+
+\begin{center}
+\verb|\attribute[|\meta{options}\verb|]{|\meta{id}\verb|}(|\meta{x,y}\verb|){|\meta{label}\verb|}|
+\end{center}
+
+The classic notation (Chen's): attributes as
+ellipses. Options: \texttt{key} (underlined), \texttt{unique} (a further
+candidate key, not drawn), \texttt{derived} (dashed), \texttt{formula=}\meta{SQL} (how a
+derived attribute is computed, only used by the relational schema of the desktop
+editor), \texttt{multivalued} (double border), \texttt{composite} (rounded box for
+aggregated attributes), \texttt{type=}\meta{type} (section~\ref{sec:types}) and
+\texttt{of=}\meta{node}, which draws the connecting line.
+
+\begin{example}
+\begin{erdiagram}
+  \entity{car}(0,0){Passenger car}
+  \attribute[key, of=car]{a1}(-2.2,1.5){carNo}
+  \attribute[of=car]{a2}(0,1.7){color}
+  \attribute[derived, of=car]{a3}(2.2,1.5){age}
+  \attribute[multivalued, of=car]{a4}
+    (-2.4,-1.4){owner}
+  \attribute[composite, of=car]{a5}
+    (1.8,-1.5){engine}
+  \attribute[of=a5]{a6}(1,-2.9){power}
+  \attribute[of=a5]{a7}(3,-2.9){type}
+\end{erdiagram}
+\end{example}
+
+\subsection{Data types}\label{sec:types}
+
+Attributes can carry a data type, used by the desktop editor for the
+relational schema and SQL export (section~\ref{sec:rm}). In an attribute
+list the type follows a colon: \verb|*PID : integer|; an ellipse takes the
+option \texttt{type=}\meta{type}. Types are \emph{not} printed unless
+\texttt{show types} is set (as environment option, with \cs{ersetup} or
+with \cs{setup}). A colon that belongs to the name must be braced
+(\verb|ratio 1{:}2|), as must a type containing a comma
+(\verb|price : {decimal(8,2)}|).
+
+\begin{example}
+\begin{erdiagram}[show types]
+  \entity{p}(0,0){Person}
+  \attributes[anchor=north]{p}
+    {*PID : integer, name : string,
+     born : date}
+  \attribute[type=float, of=p]
+    {h}(3.2,0){height}
+\end{erdiagram}
+\end{example}
+
+\texttt{type sep} (default \verb*|:\ |) is put between name and type,
+\texttt{type font} (default empty) selects the font of the type.
+
+% =====================================================================
+\section{Generalisation and aggregation}\label{sec:generalisation}
+
+\begin{center}
+\verb|\isa[|\meta{options}\verb|]{|\meta{id}\verb|}(|\meta{x,y}\verb|){|\meta{supertype}\verb|}{|\meta{constraint}\verb|}|\qquad
+\verb|\canbe[...]{...}(...){...}{...}|
+\end{center}
+
+\cs{isa} draws the IS\_A hexagon and the arrow to the supertype;
+subtypes are then connected with \cs{link}. \cs{canbe} is the same for
+specialisations (CAN\_BE). With \texttt{isa shape=diamond} both are drawn as diamonds.
+
+The constraint gives the type of the generalisation: \texttt{c} complete (also called
+total) or \texttt{i} incomplete (also called partial), and \texttt{d} disjoint or
+\texttt{o} overlapping, so \texttt{cd}, \texttt{co}, \texttt{id}, \texttt{io}. By
+default it is printed inside the shape, below IS\_A. With
+\texttt{constraint pos=auto} it goes beside the shape, in the direction
+with the most room, or to a fixed side such as
+\texttt{constraint pos=east}. \texttt{constraint style=words} prints
+``complete, disjoint'' instead of the letters. Words go beside the shape; other
+text is printed as written.
+
+\begin{longtable}{@{}>{\ttfamily}p{3.6cm}p{12.2cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+constraint pos=\meta{pos} & \texttt{inside} (default), \texttt{auto}
+  or a compass direction like \texttt{east}\\
+super card=\meta{text} & cardinality at the supertype end of the arrow
+  (alternative notation: \texttt{1})\\
+sub card=\meta{text} & cardinality below the shape (\texttt{n},
+  \texttt{c}, \texttt{cn})\\
+\meta{other} & as for relationships (\texttt{color}, TikZ options)\\
+\bottomrule
+\end{longtable}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{p}(0,0){Product}
+  \isa{i}(0,-1.8){p}{cd}
+  \entity{f}(-1.6,-3.5){Foreign material}
+  \entity{s}(1.6,-3.5){Self produced}
+  \link{f}{i}\link{s}{i}
+\end{erdiagram}
+\end{example}
+
+The alternative notation with cardinalities instead of letters:
+
+\begin{example}
+\begin{erdiagram}
+  \entity{q}(0,0){Player}
+  \isa[super card=1, sub card=m]{j}(0,-1.8){q}
+  \entity{x}(-1.6,-3.5){Soccer}
+  \entity{y}(1.6,-3.5){Tennis}
+  \link{x}{j}\link{y}{j}
+\end{erdiagram}
+\end{example}
+
+\begin{example}
+\begin{erdiagram}
+  \entity{p}(0,0){Person}
+  \isa[constraint pos=auto]{i1}(-2,-1.6){p}{cd}
+  \isa{i2}(2,-1.6){p}{io}
+  \entity[minimum width=1.6cm]{t}(-3,-3.2){Teen}
+  \entity[minimum width=1.6cm]{a}(-1,-3.2){Adult}
+  \entity[minimum width=1.6cm]{w}(1.1,-3.2){Worker}
+  \entity[minimum width=1.6cm]{o}(3,-3.2){Officer}
+  \link{t}{i1}\link{a}{i1}\link{w}{i2}\link{o}{i2}
+\end{erdiagram}
+\end{example}
+
+\paragraph{Several supertypes.} A subtype can belong to several generalisations: draw one
+\cs{isa} per supertype and link the subtype to each. What this means for the relational schema
+is described in section~\ref{sec:rm}.
+
+\begin{center}
+\verb|\partof[|\meta{options}\verb|]{|\meta{id}\verb|}(|\meta{x,y}\verb|)|
+\end{center}
+
+An aggregation diamond labelled PART\_OF. \verb|\ersetup{partof label=part of}| changes the
+text. It stays a diamond whatever \texttt{isa shape} says.
+
+\begin{example}
+\begin{erdiagram}
+  \entity{car}(1.6,0){Passenger car}
+  \partof{p1}(0,-1.6)\partof{p2}(3.2,-1.6)
+  \entity{w}(0,-3.2){Wheel}
+  \entity{b}(3.2,-3.2){Car body}
+  \link{car}{p1}{1}\link{p1}{w}{n}
+  \link{car}{p2}{1}\link{p2}{b}{1}
+\end{erdiagram}
+\end{example}
+
+% =====================================================================
+\section{Notes, subdomains and the grid}
+
+\begin{center}
+\verb|\note[|\meta{options}\verb|](|\meta{x,y}\verb|){|\meta{text}\verb|}|\qquad
+\verb|\subdomain[|\meta{options}\verb|]{|\meta{label}\verb|}{(x,y) (x,y) ...}|\qquad
+\verb|\grid(x1,y1)(x2,y2)|
+\end{center}
+
+Notes are free text (dark red by default; \texttt{color=} changes it; use
+\verb|\\| for line breaks; TikZ options like \texttt{anchor=west} apply).
+A subdomain is a frame drawn behind the diagram: two points give a
+rectangle, more points a polygon; the label box hangs from the
+\emph{first} point. Options: \texttt{color}, \texttt{dotted} (dotted
+background), \texttt{fill=}\meta{colour} and TikZ options for the frame
+(e.g.\ \texttt{rounded corners}, \texttt{dashed}). \cs{grid} draws a
+labelled helper grid for a region (see also the environment option
+\texttt{grid}).
+
+For the package a subdomain is only a drawing. In the desktop editor it also groups
+what is inside it: moving it moves its contents, and the relational schema is grouped under it.
+
+\begin{example}
+\begin{erdiagram}[max width=\linewidth]
+  \subdomain[color=blue!60, dotted]{Sales}
+    {(-1.6,0.9) (3,-1)}
+  \subdomain[color=green!50!black, fill=green!5]
+    {Logistics}{(3.4,0.9) (8,0.9) (8,-2.4)
+    (5.5,-2.4) (5.5,-1) (3.4,-1)}
+  \entity{c}(0,0){Customer}
+  \entity{d}(6.5,0){Delivery}
+  \note(1,-1.6){Customers must be\\at least 18}
+  \note[color=blue, anchor=west](3.5,-2.1)
+    {\textit{note in blue}}
+\end{erdiagram}
+\end{example}
+
+% =====================================================================
+\section{Relational model options}\label{sec:rm}
+
+The desktop editor (\emph{ERDTeX}, menu \emph{File $\to$
+Relational Schema / SQL}) transforms an ER diagram into relations and writes
+them as plain text, as LaTeX, as Markdown, or as SQL for PostgreSQL, Oracle and SQLite. Where
+the rules leave a choice, the choice is stored in the diagram as options. The
+package accepts these options and ignores them, so such diagrams compile
+unchanged.
+
+Key attributes of a relationship type
+(\verb|\attributes{r}{*date}|) join the primary key of its relation, and a role
+(\verb|role=|) names the foreign key column. The two cardinality notations are described in section~\ref{sec:links}.
+
+\begin{longtable}{@{}>{\ttfamily}p{4.4cm}p{11.4cm}@{}}
+\toprule
+\normalfont\textbf{Option} & \textbf{Meaning}\\\midrule
+rm rules=db1 & in \cs{setup}: written by older versions of the editor (up to 3.5) for its
+  second set of defaults (generalisations without categorisation, recursive
+  relationships as foreign keys); still read by it\\
+rm=1|2|3|4 & on \cs{isa}/\cs{canbe}: how the generalisation is represented: (1) one relation per entity type, (2) subtype
+  relations only, (3) one relation with a categorisation attribute,
+  (4) one relation with Boolean flags\\
+rm category=\meta{kind} & with \texttt{rm=1}: \texttt{attribute}
+  (categorisation attribute in the supertype, the default for disjoint
+  generalisations), \texttt{relation} (own categorisation relation, the
+  default for overlapping ones) or \texttt{none}\\
+rm=\meta{entity id} & on a 1:1 or c:c relationship: the relation that
+  receives the foreign key\\
+rm=table & on any relationship that would be stored as foreign keys: an own
+  relation instead\\
+rm=fk & on a recursive relationship: a foreign key instead of an own
+  relation\\
+rm=fold & on an n-ary relationship: foreign keys in the relation of one side
+  instead of an own relation\\
+rm key=\meta{sides} & on n-ary relationships: the single sides that belong to
+  the primary key, in addition to the complex ones (entity ids;
+  \meta{id}\texttt{\#2} for the second link to the same entity). With (min,max):
+  the side whose key identifies the relationship\\
+rm name=\meta{name} & on entities and relationships: the name of the
+  relation; on \cs{isa}: the name of the categorisation attribute\\
+\bottomrule
+\end{longtable}
+
+The kinds of attributes have a fixed mapping. The parts of a composite attribute become
+columns, with its name as a prefix only on a clash. A multi-valued attribute gets a relation of
+its own, with the owner's key and the value. A derived attribute isn't stored; with a
+\texttt{formula}, a view in the SQL script computes it. A further candidate key becomes
+\texttt{UNIQUE}, where NULL stays allowed.
+
+A subtype with several supertypes refers to all of them, and takes its key from the first.
+A second supertype above the same root has the same key, so that column gets a second foreign
+key; with different roots, the other key becomes a further column that is \texttt{UNIQUE} and
+\texttt{NOT NULL}. The options \texttt{rm=2}, \texttt{3} and \texttt{4} aren't available for
+such a generalisation, because the subtype couldn't be merged into two relations. A diagram
+that asks for one gets a warning, and the default.
+
+% =====================================================================
+\subsection{Writing a relational schema}
+
+The LaTeX output of the desktop editor is an environment of this package. It needs no other
+package, and its commands only exist inside it, so a document can have its own
+\cs{pkey} or \cs{set}. Primary keys are underlined, foreign keys in italics. Names stay
+as drawn, only without spaces; SQL uses sanitised ones.
+
+\begin{verbatim}
+\begin{relationalschema}
+  \relation{Raum}{\pkey{Raum-Id}{integer}, \col{Name}{string}}
+  \relation{Sitz}{\pfkey{Raum-Id}{integer}, \pkey{Nr}{integer}, \fkey{Gast}{}}
+\end{relationalschema}
+\end{verbatim}
+\begin{relationalschema}
+  \relation{Raum}{\pkey{Raum-Id}{integer}, \col{Name}{string}}
+  \relation{Sitz}{\pfkey{Raum-Id}{integer}, \pkey{Nr}{integer}, \fkey{Gast}{}}
+\end{relationalschema}
+
+\noindent Under \cs{relationgroup}\verb|{Title}| the desktop editor groups the relations of a
+subdomain box.
+
+\section{Settings for a whole diagram or document}\label{sec:settings}
+
+Every style key can be set for one diagram (an option of the environment, or \cs{setup}
+inside it) or for the rest of a document (\cs{ersetup}; in GSM diagrams \cs{gsmsetup}). A
+diagram's own value wins. The desktop editor stores its settings per diagram with \cs{setup},
+so they travel with the file.
+
+\paragraph{Sans-serif.} \texttt{sans serif} sets all text of a diagram in the document's
+sans-serif font, also in GSM diagrams. The text around the diagram stays as it is.
+
+\paragraph{Scaling.} \texttt{scale=0.5} scales the finished diagram, with its nodes, text and
+lines. It is an option of the environments and of \cs{inputerdiagram} and \cs{inputgsmdiagram},
+just like \texttt{width}, \texttt{height} and \texttt{max width}. An exact \texttt{width} or
+\texttt{height} wins over it; \texttt{max width} and \texttt{max height} still limit the result.
+
+\paragraph{German labels.} The labels follow the language of the document (babel or polyglossia):
+\emph{IS\_A}, \emph{CAN\_BE}, \emph{PART\_OF} become \emph{IST\_EIN*E}, \emph{KANN\_SEIN},
+\emph{TEIL\_VON}. \texttt{label language=german} or \texttt{english} fixes the language; a label
+of your own (\texttt{isa label=...}) always wins. The words of a generalisation's type
+are not translated.
+
+\begin{example}
+\begin{erdiagram}[sans serif, label language=german, scale=0.8]
+  \entity{p}(0,0){Person}
+  \isa[constraint pos=east]{i}(0,-1.8){p}{cd}
+  \entity{s}(0,-3.6){Student}
+  \link{s}{i}
+\end{erdiagram}
+\end{example}
+
+\section{Rule checks}\label{sec:rules}
+
+While drawing, the package checks the most important ER rules and
+reports violations as \LaTeX\ warnings (\texttt{Package erdiagram
+Warning: ER rule: \dots}) without changing the output. They can be
+switched off with \verb|\ersetup{rule warnings=false}| or, for the
+end-of-diagram checks, with the environment option
+\texttt{checks=false}.
+
+\begin{itemize}
+\item two entities linked directly, without a relationship in between;
+\item two relationships linked directly;
+\item a non-entity linked to an IS\_A, or an IS\_A whose supertype
+  is not an entity;
+\item a cardinality on an edge that touches no entity;
+\item attributes attached to an IS\_A;
+\item a relationship connected to fewer than two nodes;
+\item an IS\_A without subtypes;
+\item a weak entity that is not linked to a weak (E/Id) relationship;
+\item a double line anywhere but between a weak relationship and a weak entity.
+\end{itemize}
+
+The desktop editor checks all of this and more, such as missing roles on recursive relationships
+and invalid cardinalities (see its README).
+
+% =====================================================================
+\section{Style parameters}\label{sec:style}
+
+All parameters can be set globally with \cs{ersetup}\verb|{key=value,...}|,
+for one diagram as environment options, or inside a diagram with
+\cs{setup}. Colours are xcolor expressions, fonts are font commands.
+
+\begin{longtable}{@{}>{\ttfamily}p{5.1cm}>{\ttfamily}p{3.5cm}p{7cm}@{}}
+\toprule
+\normalfont\textbf{Key} & \normalfont\textbf{Default} & \textbf{Meaning}\\\midrule
+\endhead
+entity fill / draw / text & gray!15 / black / black & entity colours\\
+entity line width & 0.6pt & \\
+entity font & \textbackslash bfseries & \\
+entity minimum width / height & 2.8cm / 1cm & \\
+entity inner sep & 5pt & \\
+weak double distance & 2pt & gap of double borders\\
+rel fill / draw / text & white / black / black & relationship colours\\
+rel line width & 0.6pt & \\
+rel font & \textbackslash itshape & \\
+rel minimum width / height & 2cm / 1.4cm & \\
+rel aspect & 1.6 & width/height of diamonds\\
+dependency color / font & red!70!black / \textbackslash normalfont\textbackslash bfseries & the E / Id mark\\
+isa label / canbe label & IS\textbackslash\_A / CAN\textbackslash\_BE & \\
+partof label & PART\textbackslash\_OF & \\
+constraint color / font & red!70!black / \textbackslash normalfont\textbackslash small & cd, co, id, io\\
+constraint pos & inside & see \cs{isa}\\
+constraint style & letters & or \texttt{words}\\
+isa shape & hexagon & or \texttt{diamond}\\
+isa minimum width / height & 2cm / 1cm & of the hexagon\\
+isa slant & 0.5 & how pointed the hexagon's sides are\\
+attr font / text & \textbackslash small / black & attribute trees\\
+attr spread & 0.35cm & distance between attributes\\
+attr indent & 3pt & the parts of a composite attribute\\
+attribute style & compact & or \texttt{chen}: lists as ovals\\
+sans serif & false & section~\ref{sec:settings}\\
+label language & auto & or \texttt{german}, \texttt{english}\\
+chen dist & 0.9cm & from a node to its ovals\\
+show types & false & print data types (section~\ref{sec:types})\\
+type sep / type font & \verb*|:\ | / (empty) & between name and type / font of the type\\
+attr gap & (= spread) & node to first attribute (trunk)\\
+attr tick / attr stem & 0.3cm / 0.3cm & \\
+attribute fill / draw & white / black & Chen-style ellipses\\
+attribute minimum width / height & 1.2cm / 0.7cm & \\
+card font / text & \textbackslash footnotesize / black & cardinalities\\
+card placement & inline & or \texttt{beside}\\
+card symbols & labels & or \texttt{crowsfoot}\\
+crow length / width & 6pt / 3.5pt & the crow's foot symbols\\
+card notation & n & or \texttt{minmax}; what the desktop editor offers\\
+card dist & 0.3cm & \\
+card side & auto & \\
+role font / text & \textbackslash footnotesize \textbackslash itshape / black & role names\\
+role pos & auto & 0.5, or near the entity if the cardinality is mid-edge\\
+edge color / line width & black / 0.5pt & \\
+link double distance & 1.5pt & gap of double-lined links\\
+note color / font & red!70!black / \textbackslash small & \\
+subdomain color & blue!60 & \\
+subdomain label font & \textbackslash small\textbackslash bfseries & \\
+subdomain line width & 1.2pt & \\
+subdomain tuck & 4pt & chamfer of the label box\\
+subdomain label vpad / hpad & 4pt / 5pt & \\
+rule warnings & true & \\
+grid color / grid label color & gray!25 / gray!55 & \\
+\bottomrule
+\end{longtable}
+
+The TikZ styles \texttt{er entity}, \texttt{er relationship},
+\texttt{er weak}, \texttt{er attribute}, \texttt{er attr label},
+\texttt{er card}, \texttt{er role}, \texttt{er constraint},
+\texttt{er edge}, \texttt{er arrow} and \texttt{er note} can be
+redefined or extended with \cs{tikzset} for deeper changes.
+
+% =====================================================================
+\section{A complete example: a music festival}
+
+The sample diagram of ERDTeX (\emph{File $\to$ Open Example}),
+drawn with the package. It uses most features at once: a weak entity type
+with its identifying relationship, generalisations of both kinds, PART\_OF,
+attributes of every kind with data types, a recursive and a three-way
+relationship (through a junction point), subdomain boxes and a note.
+
+The diagram is stored in the file \texttt{festival.erd} (listed below) and
+included like this:
+
+\begin{center}
+\verb|\inputerdiagram[width=\linewidth]{festival.erd}|
+\end{center}
+
+\medskip
+\noindent\inputerdiagram[width=\linewidth]{festival.erd}
+
+\lstinputlisting[basicstyle=\ttfamily\scriptsize, frame=single,
+  rulecolor=\color{black!25}]{festival.erd}
+
+% =====================================================================
+\section{Known limitations}\label{sec:limits}
+
+The following cases are \emph{not} handled automatically (yet). They are
+shown here on purpose.
+
+\begin{enumerate}
+\item \textbf{Labels only look at directions.} A cardinality chooses the
+  side of its edge by comparing the \emph{directions} of the other edges
+  and attribute trees at its entity, and it keeps clear of the entity
+  itself, but it does not test for collisions with the actual drawings
+  of other elements. Below, the edge and the attribute tree leave A in
+  the same direction, so the label collides with the tree. Nothing
+  prevents nodes or attribute trees of different elements from
+  overlapping either: positions are up to the author (or the editor).
+\begin{example}
+\begin{erdiagram}
+  \entity{a}(0,0){A}
+  \relationship{r}(3.5,0){R}
+  \entity{b}(3.5,-2){B}
+  \link{a}{r}{(0,n)}
+  \link{r}{b}{(1,1)}
+  \attributes[anchor=east]{a}{x, y}
+\end{erdiagram}
+\end{example}
+\item \textbf{Very crowded entities.} When three or more edges leave an
+  entity within a narrow angle, some cardinality ends up between two
+  edges and may touch one of them; use \texttt{card side} or
+  \texttt{card dist} for such edges.
+\item \textbf{Way points} in \texttt{via} must be plain coordinates
+  \verb|(x,y)| or node anchors \verb|(a.north)|; calculations like
+  \verb|($(a)+(1,0)$)| are not supported there (use a \cs{point}).
+\item \textbf{Polygon subdomains} hang their label box from the first
+  point, so list the top-left corner first.
+\item \textbf{Rule checks} are local: e.g.\ cycles in generalisation
+  hierarchies are not detected.
+\end{enumerate}
+
+\end{document}

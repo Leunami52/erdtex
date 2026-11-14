@@ -1,0 +1,83 @@
+# Every push and pull request: the full check (tools/check_rust.sh: formatting, lints, the Rust and page
+# tests with the rule books and snapshots, the generated SQL in SQLite and PostgreSQL, the website in
+# Chromium, Firefox and WebKit, nothing private in the tree) and the LaTeX packages
+# (tools/check_packages.sh). The desktop window tests and the release builds run on the maintainer's
+# computer (they need a display, WebDriver, containers and Wine).
+name: Check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: System packages (WebKitGTK for the Tauri crate, TeX Live, poppler)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev libssl-dev \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-pictures lmodern \
+            poppler-utils
+          # PostgreSQL is on the runner; tools/check_sql.py starts a throwaway server of its own
+          echo "$(ls -d /usr/lib/postgresql/*/bin | tail -1)" >> "$GITHUB_PATH"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop_app_rust
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack,cargo-about
+
+      - name: gitleaks (the secret scan of tools/public_tree.py)
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop_app_rust/package-lock.json
+
+      - name: Page dependencies and the browsers
+        working-directory: desktop_app_rust
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: The full check
+        env:
+          # words the tree must not contain that tools/public_tree.py mustn't name itself
+          PUBLIC_TREE_DENIED: ${{ secrets.PUBLIC_TREE_DENIED }}
+        run: tools/check_rust.sh
+
+      - name: The LaTeX packages
+        run: tools/check_packages.sh
+
+      - name: The Playwright report, if the website tests failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: desktop_app_rust/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

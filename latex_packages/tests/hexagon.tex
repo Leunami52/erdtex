@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\makeatletter
+\newcommand\showanchor[2]{\pgfpointanchor{#1}{#2}\pgf@xa=\pgf@x \pgf@ya=\pgf@y
+  \pgfpointanchor{#1}{center}\advance\pgf@xa by -\pgf@x \advance\pgf@ya by -\pgf@y
+  \typeout{ANCHOR #1.#2: \the\pgf@xa, \the\pgf@ya}}
+\makeatother
+\begin{document}
+\begin{erdiagram}
+  \entity{p}(0,0){Person}
+  \isa{i}(0,-2.2){p}{cd}
+  \entity{a}(-3,-4){Sub A}\entity{b}(0,-4){Sub B}\entity{c}(3,-4){Sub C}
+  \link{a}{i}\link{b}{i}\link{c}{i}
+  \canbe{k}(6,-2.2){p}{io}
+  \entity{d}(6,-4){Sub D}\link{d}{k}
+  \partof{q}(-5,0)\link{p}{q}{1}
+  \isa{long}(-5,-3){p}{a rather long free text}
+  \isa{two}(-9,-3){p}{free text\\in two lines}
+  \showanchor{i}{north}\showanchor{i}{south}\showanchor{i}{east}\showanchor{i}{west}
+  \showanchor{i}{north east}\showanchor{i}{south west}
+  \showanchor{i}{30}\showanchor{i}{80}\showanchor{i}{170}\showanchor{i}{280}
+  \showanchor{long}{north}\showanchor{long}{east}
+\end{erdiagram}
+
+\begin{erdiagram}[constraint style=words]
+  \entity{p}(0,0){Person}
+  \isa{i}(0,-2.2){p}{cd}
+  \entity{a}(-3,-4){Sub A}\entity{b}(3,-4){Sub B}
+  \link{a}{i}\link{b}{i}
+  \isa{j}(6,-2.2){p}{o}
+  \entity{c}(6,-4){Sub C}\link{c}{j}
+\end{erdiagram}
+
+% level, upright and long edges; no slant at all
+\begin{erdiagram}[isa slant=0]
+  \entity{p}(0,0){Person}
+  \isa{i}(4,0){p}{cd}
+  \entity{a}(4,-3){Sub A}\link{a}{i}
+  \entity{b}(40,0.5){Far away}\link{b}{i}
+\end{erdiagram}
+
+\begin{erdiagram}[isa shape=diamond]
+  \entity{p}(0,0){Person}
+  \isa{i}(0,-2.2){p}{io}
+  \entity{a}(0,-4){Sub A}\link{a}{i}
+\end{erdiagram}
+\end{document}

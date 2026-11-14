@@ -1,0 +1,12 @@
+\documentclass{article}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}
+  \entity{b}(0,0){Building}
+  \relationship[dependency=Id]{has}(3.5,0){has}
+  \entity[weak]{r}(7,0){Room}
+  \link{b}{has}{1}
+  \link[double]{has}{r}{m}
+  \link[double, beside, bend=20]{b}{has}{x}
+\end{erdiagram}
+\end{document}

@@ -1,0 +1,24 @@
+% ferries-1.erd -- test diagram: ferries, captains and terminals
+\setup{sans serif}
+\entity{city}(0,3.75){City}
+\attributes{city}{*City name, *State name}
+\entity{terminal}(-5.75,0){Terminal}
+\attributes[anchor=west]{terminal}{*Name, Berths count}
+\entity{ferry}(5.25,0){Ferry}
+\attributes{ferry}{*Ferry nbr, Load capacity, Description}
+\entity{captain}(0,-3.75){Captain}
+\attributes{captain}{*Captain nbr, Name, Date of birth}
+\relationship{is}(-3.25,2){is in}
+\relationship{drives}(0,0){drives}
+\attributes[anchor=north]{drives}{*Journey time scheduled, Journey time real, Arrival time scheduled, Arrival time real, Berth nbr}
+\relationship{responsible}(3.25,-2){responsible for}
+\attributes{responsible}{*Date begin, Date end}
+\link{is}{city}{1}
+\link{is}{terminal}{cn}
+\link[bend=14, role=destination]{terminal}{drives}{cn}
+\link{drives}{ferry}{cn}
+\link{drives}{captain}{cn}
+\link{responsible}{captain}{1}
+\link{ferry}{responsible}{cn}
+\link[bend=-14, role=origin]{terminal}{drives}{cn}
+

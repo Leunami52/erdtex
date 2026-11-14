@@ -1,0 +1,17 @@
+% company.gsmd -- test diagram: people working for companies
+\abstract{person}(0,0){Person}
+\abstract{company}(7,0){Company}
+\representable{language}(-1.6,2.8){Instrument}
+\representable{pname}(1.2,2.8){PName}
+\representable{coname}(7.6,2.8){CoName}
+\representable{number}(3.5,-3){Number}
+\attribute{person.120}{language}{plays}
+\attribute{person.60}{pname}{has name}
+\attribute{company.60}{coname}{has name}
+\attribute[label side=below]{person.east}{company.west}{assists}
+\attribute[via={(5.6,0.9) (1.4,0.9)}, label side=above]{company.north west}{person.north east}{assists$^{-1}$}
+\point{fork}(3.5,-1.6)
+\link[ortho=|-]{person.south}{fork}
+\link[ortho=|-]{company.south}{fork}
+\attribute[label side=right, horizontal]{fork}{number}{year(s) of employment}
+\note[anchor=west, text=black](5,-3.1){Inverse: $(\textit{assists}(p))^{-1} = p$}

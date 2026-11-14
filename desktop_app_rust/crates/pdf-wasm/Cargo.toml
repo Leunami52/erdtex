@@ -1,0 +1,16 @@
+[package]
+name = "diagram-pdf-wasm"
+version = "0.1.0"
+description = "ERDTeX's PDF export for the website: an SVG as PDF, with the desktop app's svg2pdf"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+svg2pdf = { version = "0.13.0", default-features = false }
+wasm-bindgen = "0.2"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

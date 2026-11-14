@@ -1,0 +1,16 @@
+% The output of the desktop editor in a document that has its own \pkey and \set.
+\documentclass{article}
+\usepackage{erdiagram}
+\newcommand\set[1]{\left\{#1\right\}}
+\newcommand\pkey[1]{MINE(#1)}
+\newcommand\relation{MINE}
+\begin{document}
+Before: \pkey{a}, $\set{x}$, \relation, \emph{emphasis stays italic}.
+\begin{relationalschema}
+  \relation{Person}{\pkey{PID}{integer}, \col{Name}{string}, \fkey{Raum-Id}{}}
+  \relation{Hund}{\pfkey{PID}{integer}, \pkey{Nr}{}, \col{Vorgänger}{}}
+  \relation{Very\_long}{\pkey{aaaaaaaaaaaaaaaaaaaa}{integer}, \col{bbbbbbbbbbbbbbbbbbbbbbbb}{string},
+    \col{cccccccccccccccccccc}{string}, \col{dddddddddddddddddddddd}{string}, \col{eeeeeeeeeee}{string}}
+\end{relationalschema}
+After: \pkey{a}, $\set{x}$, \relation.
+\end{document}

@@ -1,0 +1,53 @@
+% railway.erd -- test diagram: a railway: stations, trains, journeys, locomotives and the people working on them
+\entity{person}(0,0){Person}
+\attributes[anchor=north east, xshift=-0.3cm, side=left, spread=0.33cm]
+  {person}{*PID, name, address, date of birth}
+\isa{isa1}(3.4,-0.6){person}{co}
+\entity{employee}(7,0){Member}
+\attributes[anchor=north west, xshift=0.3cm]{employee}{*empID, salary}
+\link{employee}{isa1}
+\entity{commuter}(3.9,-2.4){Commuter}
+\link{commuter}{isa1}
+\attributes[anchor=south west, xshift=0.5cm, side=left]{commuter}{gender, vegetarian}
+\isa{isa2}(10.6,0){employee}{id}
+\entity{engineer}(9,-2.2){Engineer}
+\entity{tech}(12.4,-2.2){Technician}
+\link{engineer}{isa2}\link{tech}{isa2}
+\attributes[anchor=west, align=bottom]{engineer}{driving hours, license}
+\attributes[anchor=north east, xshift=-0.3cm]{tech}{Permit}
+\entity[minimum width=2cm]{station}(-0.4,-3.3){Station}
+\attributes[anchor=north east, xshift=-0.3cm, side=left]{station}{*StID, name, location}
+\relationship{dep}(-1.3,-4.9){departure}
+\relationship{arr}(0.5,-4.9){arrival}
+\entity[minimum width=2cm]{train}(-0.4,-6.5){Train}
+\link{station}{dep}{1}\link{dep}{train}{n}
+\link{station}{arr}{1}\link{arr}{train}{n}
+\attributes[anchor=south east, xshift=-0.3cm, side=left]{train}
+  {*TID, departure time, arrival time, interval}
+\relationship[dependency=Id]{exec}(3.6,-6.5){execute}
+\entity[weak]{departure}(7,-6.5){Journey}
+\attributes[anchor=north east, xshift=-0.3cm]{departure}{*TID, *date}
+\link{train}{exec}{1}\link[double]{exec}{departure}{n}
+\relationship{book}(4.6,-4.3){book}
+\attributes[anchor=west]{book}{class, seat, price}
+\link{commuter}{book}{n}\link{book}{departure}{n}
+\relationship{operates}(8.8,-4.3){operates}
+\link{engineer}{operates}{1}\link{operates}{departure}{n}
+\relationship{qual1}(10.6,-4.3){qualified}
+\relationship{qual2}(12.6,-4.3){qualified}
+\entity{atype}(12.2,-6.5){Locomotive type}
+\link{engineer}{qual1}{n}\link{qual1}{atype}{n}
+\link{tech}{qual2}{n}\link{qual2}{atype}{n}
+\attributes[anchor=south east, xshift=-0.3cm, side=left]{atype}
+  {*manufacturer, *type, length, speed, seats, maintenance period, range}
+\relationship{transport}(7,-8.3){transport}
+\entity{locomotive}(7,-10.2){Locomotive}
+\link{departure}{transport}{n}\link{transport}{locomotive}{1}
+\attributes[anchor=west]{locomotive}
+  {*serID, purchase date, train hrs, lastMaintenance, extensionType}
+\relationship{assign}(9.8,-8.3){assign\\to}
+\link{locomotive}{assign}{n}\link{assign}{atype}{1}
+\relationship{maintain}(14.4,-10.2){main-\\tain}
+\attributes[anchor=north east]{maintain}{from, to}
+\link{locomotive}{maintain}{n}\link[ortho=-|]{tech}{maintain}{n}
+\note[anchor=west](-1.4,-11.2){\color{black}Journey \dots\ operated train}

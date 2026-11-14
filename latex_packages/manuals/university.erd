@@ -1,0 +1,6 @@
+% file: university.erd -- body of an erdiagram environment
+\entity{student}(0,0){Student}
+\relationship{attends}(3.5,0){attends}
+\entity{course}(7,0){Course}
+\link{student}{attends}{cn}
+\link{attends}{course}{n}

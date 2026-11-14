@@ -1,0 +1,23 @@
+\documentclass{article}\usepackage[T1]{fontenc}\usepackage{lmodern}
+\usepackage{erdiagram}
+\begin{document}
+\begin{erdiagram}[attribute style=chen]
+  \entity{p}(0,0){Person}
+  \attributes{p}{*PID, name, address{street, town, geo{lat, lon}}, \{email\}, /age : integer}
+  \relationship{r}(5,0){owns}
+  \entity[weak]{d}(10,0){Dog}
+  \attributes{d}{*nr, breed}
+  \attributes{r}{since}
+  \link{p}{r}{1}\link{r}{d}{n}
+  \entity{f}(0,-6){Fixed}
+  \attributes{f}{*a@-2/1, b@2/1, c{x@1.2/0.8, y}, free}
+  \attribute[of=f]{old}(3,-6){old oval}
+  \entity{m}(9,-6){Many}
+  \attributes{m}{one, two, three, four, five, six, seven, eight, nine, ten}
+\end{erdiagram}
+
+\begin{erdiagram}[attribute style=chen, show types]
+  \entity{p}(0,0){Typed}
+  \attributes{p}{*PID : integer, name : string}
+\end{erdiagram}
+\end{document}

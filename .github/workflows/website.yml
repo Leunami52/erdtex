@@ -1,0 +1,65 @@
+# The website (leunami52.github.io/erdtex/): built from each release tag and deployed to GitHub Pages.
+# While the repository is private, it is only built (Pages needs a public repository on this plan); the
+# built site is kept as the run's artifact.
+name: Website
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop_app_rust
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop_app_rust/package-lock.json
+
+      - name: Build the website
+        working-directory: desktop_app_rust
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:web
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: desktop_app_rust/dist-web
+
+  deploy:
+    needs: build
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

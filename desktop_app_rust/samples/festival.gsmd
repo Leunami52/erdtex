@@ -1,0 +1,35 @@
+% festival.gsmd -- a sample GSM diagram: a music festival
+% --- people ---------------------------------------------------------
+\abstract{person}(0,4){Person}
+\representable{name}(-4,6.5){Name}
+\attribute[label side=left]{person}{name}{has name}
+\representable{date}(4,6.5){Date}
+\attribute{person}{date}{born on}
+\representable{age}(7.5,4){Age}
+\attribute{person}{age}{age [computed]}
+\aggregation{address}(-4.5,4){Address}
+\representable{street}(-7,2){Street}
+\representable{city}(-4.5,1.5){City}
+\component{address}{street}\component{address}{city}
+\attribute[label side=below]{person}{address}{lives at}
+% --- who they are -----------------------------------------------------
+\subtype{musician}(-2.5,0.5){Musician}
+\subtype{crew}(2,1){Crew}
+\subtype{volunteer}(5,1){Volunteer}
+\generalization{musician}{person}
+\generalization{crew}{person}
+\specialization[label side=left]{volunteer}{person}
+\representable{instrument}(-5,-2){Instrument}
+\multiattribute[label side=left]{musician}{instrument}{plays}
+% --- bands and the line-up ----------------------------------------------
+\abstract{band}(1,-3){Band}
+\attribute[bend left=20]{musician}{band}{member of}
+\multiattribute[bend left=20]{band}{musician}{members}
+\representable{genre}(-2,-5.5){Genre}
+\multiattribute[label side=left]{band}{genre}{genres}
+\grouping{lineup}(5,-3){Line-up}
+\component{lineup}{band}
+\abstract{festival}(8.5,-3){Festival}
+\attribute{festival}{lineup}{presents}
+\representable{title}(8.5,-5.5){Title}
+\attribute{festival}{title}{called}

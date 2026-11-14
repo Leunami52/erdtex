@@ -1,0 +1,124 @@
+% webshop.erd -- test diagram: a web shop: merchants, shoppers, articles, bookings and invoices
+\setup{sans serif}
+\entity{employee}(-4.5,11.25){Member}
+\attributes{employee}{Social security nbr, Postal address{House nbr, Street, Postal code, Region}, Function, Password, Authorization}
+\entity{person}(2.75,4.25){Person}
+\attributes{person}{*Person ID, First name, Last name}
+\entity{constants}(5.25,6.75){Constants}
+\attributes{constants}{*ID, Name, Value}
+\entity{inventory}(-7.75,6.5){Inventory mgmt.\\team}
+\attributes{inventory}{*Team ID, Name}
+\entity{log}(-7,-2.5){Log entry}
+\attributes[anchor=west]{log}{*Session ID, Date, Time, Action type}
+\entity{sale}(-7.25,-8.25){Sale unit}
+\attributes[anchor=west]{sale}{*Article code, Name, Wholesaler purchase price, Shopper sale price, Merchant sale price}
+\entity{special}(-9.75,-12){Special offer}
+\attributes[anchor=south east]{special}{Included items count}
+\entity{product}(-5.5,-12){Article}
+\entity{sale2}(-17,-11.5){Sale inventory\\item}
+\attributes[anchor=south]{sale2}{*Item ID, Name, Stock count, Weight, Size}
+\entity{client}(1.75,-2.5){Client}
+\attributes[anchor=north]{client}{Credit rating, Email address}
+\entity{shopper}(6.75,-1){Shopper}
+\attributes{shopper}{aaa}
+\entity{merchant}(6.75,-4.75){Merchant}
+\attributes{merchant}{*Merchant ID, Sector of trade}
+\entity{purchase}(4.75,-17.5){Purchase order}
+\attributes[anchor=north]{purchase}{*Booking ID, Delivery date, Delivery address, Password, Delivery instructions}
+\entity{invoice}(9.5,-19.5){Invoice}
+\attributes{invoice}{*Invoice nbr, *Date of issue, Time for payment, Time of payment}
+\entity[weak]{credit}(7,-6.75){Credit card}
+\attributes{credit}{*Card nbr, Validity date}
+\entity[weak]{phone}(7,-8.75){Phone contact}
+\attributes{phone}{*Contact ID, Phone nbr}
+\entity{credit2}(10,-13.5){Credit card opt.}
+\entity{pay}(10.25,-15.5){Pay on delivery opt.}
+\entity[weak]{payment}(4.5,-13.5){Payment option}
+\attributes{payment}{*Option ID}
+\entity[weak]{sales}(0.5,-21){Sales discount}
+\attributes{sales}{*Discount position, Amount, Type (abs. | rel.)}
+\entity[weak]{order}(11.5,-17.25){Booking item}
+\attributes{order}{*Position nbr, Quantity, Unit price at purchase}
+\entity[weak]{log3}(-7.5,1){Log detail}
+\attributes[anchor=west]{log3}{*Detail sq, Field name, Old value, New value}
+\isa{isa}(2.75,1){person}{co}
+\isa{isa2}(7.25,-2.75){client}{cd}
+\isa{isa3}(-7.25,-10){sale}{cd}
+\link{isa}{employee}
+\link{isa}{shopper}
+\link{isa2}{shopper}
+\link{isa2}{merchant}
+\link{isa3}{product}
+\link{isa3}{special}
+\partof{partof}(-7.25,9.25)
+\link{partof}{employee}{cn}
+\link{partof}{inventory}{n}
+\relationship{updates}(-8.25,4){updates}
+\link{inventory}{updates}{cn}
+\relationship[dependency=E]{owns}(4,-6){owns}
+\relationship[dependency=E]{owns2}(3.25,-8.25){owns}
+\link{client}{owns}{1}
+\link{client}{owns2}{1}
+\link[double]{owns}{credit}{cn}
+\link[double]{owns2}{phone}{cn}
+\partof{partof2}(-13,-11.25)
+\link{partof2}{sale2}{n}
+\link{partof2}{sale}{cn}
+\relationship{requires}(-9.25,-14){requires}
+\entity{special2}(-8.25,-16){Special condition}
+\attributes{special2}{*Condition ID, Description, Condition type, Condition value}
+\link{special}{requires}{cn}
+\link{requires}{special2}{cn}
+\relationship[dependency=E]{chooses}(1.25,-12){chooses}
+\relationship[dependency=Id]{appilies}(1,-18.5){appilies to}
+\relationship[dependency=Id]{contains}(8.25,-17.75){contains}
+\isa{isa4}(6.5,-15){payment}{cd}
+\link{isa4}{credit2}
+\link{isa4}{pay}
+\relationship{references}(-0.25,-14.25){references}
+\relationship{encompasses}(5.5,-19.75){encompasses}
+\link[double]{appilies}{sales}{cn}
+\link{purchase}{appilies}{1}
+\link{purchase}{encompasses}{1}
+\link{encompasses}{invoice}{1}
+\link{purchase}{contains}{1}
+\link[double]{contains}{order}{n}
+\link{chooses}{purchase}{1}
+\link[double]{chooses}{payment}{1}
+\link{client}{chooses}{1}
+\link{references}{order}{cn}
+\link{references}{sale}{1}
+\relationship{associates}(13.75,-10.25){associates}
+\relationship{associates2}(13.75,-12){associates}
+\link{credit2}{associates}{cn}
+\link{associates}{credit}{1}
+\link{phone}{associates2}{1}
+\link{associates2}{pay}{cn}
+\link{updates}{sale2}{cn}
+\relationship[dependency=E]{has}(-7.25,-0.75){has}
+\relationship{concerns}(-4.5,1){concerns}
+\relationship{performed}(-2.75,-1.25){performed by}
+\relationship{concerns2}(-3,-3.25){concerns}
+\relationship{concerns3}(-3.5,-4.75){concerns}
+\relationship{concerns4}(-6,-4.75){concerns}
+\relationship{concerns5}(-8.5,-4.5){concerns}
+\link{log}{has}{1}
+\link[double]{has}{log3}{n}
+\link{log}{concerns}{cn}
+\link{concerns}{person}{1}
+\link{log}{performed}{cn}
+\link{performed}{person}{1}
+\link{log}{concerns2}{cn}
+\link{log}{concerns3}{cn}
+\link{log}{concerns4}{cn}
+\link{log}{concerns5}{cn}
+\link{concerns2}{client}{1}
+\link{concerns3}{invoice}{1}
+\link{concerns4}{purchase}{1}
+\link{concerns5}{sale}{1}
+\subdomain[color=blue!60]{Inventory}{(-18.75,-7.25) (-3.75,-17)}
+\subdomain[color=blue!60]{Customers}{(-0.25,0) (11.5,-9.5)}
+\subdomain[color=blue!60]{LoggingSubdomain}{(-11.75,2.25) (-1,-6.5)}
+\subdomain[color=blue!60]{HR}{(-13.25,13.75) (0.5,3)}
+\subdomain[color=blue!60]{Sales}{(-2,-11) (11.75,-11) (12.5,-8.5) (16.75,-8.5) (16.75,-11.25) (16.75,-23) (-2,-22.75)}
+

@@ -1,0 +1,49 @@
+% features.erd -- test diagram: every ER feature at once
+\entity{student}(0,0){Student\\Second line}
+\entity{course}(8,0){Course}
+\entity[weak]{assignment}(8,-4){Assignment}
+\entity{class}(0,-4){Class}
+\entity{undergrad}(-6,-2){Undergrad}
+\entity[color=blue]{log}(-6,-4.5){Undergrad Log}
+\entity{postgrad}(-3,-2){Postgrad}
+\relationship{enrolls}(4,0){Enrolls\\2nd line}
+\partof{partof}(0,-2)
+\relationship[weak]{has}(6,-2){has}
+\relationship[dependency=Id]{has2}(8,-2){has}
+\relationship[dependency=E]{has3}(10,-2){has}
+\isa[constraint pos=auto]{isa}(-3,0){student}{id}
+\link[beside]{student}{enrolls}{(0,n)}
+\link{enrolls}{course}{(1,n)}
+\link{course}{has}{1}
+\link[beside]{has}{assignment}{N}
+\link{course}{has2}{1}
+\link{has2}{assignment}{N}
+\link{course}{has3}{1}
+\link{has3}{assignment}{N}
+\link{student}{partof}{mc}
+\link{partof}{class}{c}
+\link{undergrad}{isa}
+\link{postgrad}{isa}
+\attributes[anchor=north]{student}{*StudentID, Name, Email}
+\attributes{course}{*CourseID, Title, Credits}
+\attributes{assignment}{*No, Title, Due}
+\attributes[anchor=south east]{class}{all, eight}
+\attributes[anchor=north west]{class}{now, possible}
+\attributes[anchor=south]{log}{{with, comma}, \textit{italic}}
+\attributes[anchor=north]{enrolls}{*Some number, Other}
+\relationship{tutors}(-3,3){Tutors}
+\link[role=tutor, bend left=25]{student}{tutors}{1}
+\link[role=tutee, bend right=25, role side=below]{student}{tutors}{N}
+\relationship{r2}(4,-5.5){R2}
+\link[ortho=|-]{class}{r2}{m}
+\link[via={(10.5,-5.5)}]{r2}{assignment}{c}
+\isa[sub card=m, super card=1]{isa2}(-6,-7){log}
+\entity{s1}(-8,-8.5){Sub A}\link{s1}{isa2}
+\entity{s2}(-4,-8.5){Sub B}\link{s2}{isa2}
+\attribute[key, of=course]{a1}(11,1.5){code}
+\attribute[derived, of=course]{a2}(11,0.3){age}
+\attribute[multivalued, of=course]{a3}(11,-0.9){tags}
+\note(4,-3.5){Some constraint\\line 2}
+\note[color=magenta, anchor=west](5,3){Arbitrary colour free text}
+\subdomain[color=blue!30, dotted]{Students subdomain}{(-8,4) (2.5,-2.8)}
+\subdomain[color=green!50!black, fill=green!5]{Other group}{(1.5,-6.3) (6.5,-6.3) (6.5,-7.5) (1.5,-7.5)}

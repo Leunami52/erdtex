@@ -1,0 +1,36 @@
+% ensemble.gsmd -- test diagram: an ensemble's musicians: instruments, venues, an aggregation and groupings
+\abstract{person}(3.2,5.12){Person}
+\representable{pname}(3.68,8){PName}
+\attribute[label side=left]{person}{pname}{has name}
+\aggregation{address}(12.16,6.72){Address}
+\representable{street}(9.6,4.16){Street}
+\representable{zip}(12.16,4.16){Zip code}
+\representable{city}(14.72,4.16){City}
+\component{address}{street}\component{address}{zip}\component{address}{city}
+\attribute[bend left=8]{person}{address}{lives in}
+\attribute[bend left=8, label side=below]{address}{person}{home of}
+\grouping{instrs}(6.56,2.72){Instruments}
+\representable{instr}(7.36,0.8){Instrument}
+\component{instrs}{instr}
+\attribute{person}{instrs}{plays}
+\grouping{venues}(10.24,2.72){Venues}
+\representable{venue}(11.04,0.8){Venue}
+\component{venues}{venue}
+\attribute{person}{venues}{performs to}
+\subtype{translator}(0,2.24){Translator}
+\subtype{hiker}(3.04,0.96){Hiker}
+\subtype{agent}(5.76,-1.44){Field\\agent}
+\specialization[label side=left]{translator}{person}{[derived]}
+\specialization{hiker}{person}
+\specialization{agent}{person}
+\representable{number}(0,-0.96){Number}
+\attribute[label side=left]{translator}{number}{Num.\\instruments\\{}[\textbar plays\textbar]}
+\representable{hobbies}(0.96,-3.68){Hobbies}
+\attribute{hiker}{hobbies}{prefers}
+\representable{job}(9.92,-3.52){Job}
+\attribute[label side=below]{agent}{job}{works as}
+\abstract{company}(14.72,-1.44){Company}
+\attribute{agent}{company}{assists}
+\representable{coname}(14.08,1.44){CoName}
+\attribute[label side=left]{company}{coname}{has name}
+\attribute[via={(17.76,-1.44) (17.76,6.72)}, label segment=1]{company}{address}{located}
