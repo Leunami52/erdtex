@@ -9191,7 +9191,7 @@ SOFTWARE.
 
 ------------------------------------------------------------------------------
 MIT License (MIT)
-Used by: diagram-core 0.1.0, erdtex 3.5.0, block2 0.6.2, brotli-decompressor 6.3.0, dlopen2 0.8.2, dlopen2_derive 0.4.3, dpi 0.1.2, libm 0.2.16, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2 0.6.5, webview2-com-macros 0.8.1, webview2-com-sys 0.39.1, webview2-com 0.39.1
+Used by: diagram-core 0.1.0, erdtex 4.0.0, block2 0.6.2, brotli-decompressor 6.3.0, dlopen2 0.8.2, dlopen2_derive 0.4.3, dpi 0.1.2, libm 0.2.16, objc2-encode 4.1.0, objc2-foundation 0.3.2, objc2 0.6.5, webview2-com-macros 0.8.1, webview2-com-sys 0.39.1, webview2-com 0.39.1
 ------------------------------------------------------------------------------
 
 MIT License

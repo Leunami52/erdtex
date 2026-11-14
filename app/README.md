@@ -12,9 +12,9 @@ It runs on the desktop (Linux and Windows) and in the browser. How it is built:
 
 | System | File | Needs |
 |---|---|---|
-| Debian, Ubuntu (22.04 and newer) | `ERDTeX-3.5.0-amd64.deb`: `sudo apt install ./ERDTeX-3.5.0-amd64.deb` | WebKitGTK 4.1 (installed with it) |
-| Fedora | `ERDTeX-3.5.0-x86_64.rpm`: `sudo dnf install ./ERDTeX-3.5.0-x86_64.rpm` | WebKitGTK 4.1 (installed with it) |
-| Windows 10 and 11 (64-bit) | `ERDTeX-3.5.0-setup.exe` (for the current user, no administrator rights) | WebView2 (part of Windows 11; the installer fetches it where it is missing) |
+| Debian, Ubuntu (22.04 and newer) | `ERDTeX-4.0.0-amd64.deb`: `sudo apt install ./ERDTeX-4.0.0-amd64.deb` | WebKitGTK 4.1 (installed with it) |
+| Fedora | `ERDTeX-4.0.0-x86_64.rpm`: `sudo dnf install ./ERDTeX-4.0.0-x86_64.rpm` | WebKitGTK 4.1 (installed with it) |
+| Windows 10 and 11 (64-bit) | `ERDTeX-4.0.0-setup.exe` (for the current user, no administrator rights) | WebView2 (part of Windows 11; the installer fetches it where it is missing) |
 
 The packages add a menu entry and register `.erd` and `.gsmd` files, so they open with ERDTeX
 by double click. On Linux, Open, Save As and Export show the desktop's own file dialog (KDE's on Plasma,
@@ -27,7 +27,7 @@ The LaTeX preview and the export of the LaTeX result need `pdflatex` (TeX Live, 
 the PATH); everything else works without it. `pdftocairo` (poppler) is used for the LaTeX result as SVG
 or PNG where it is installed.
 
-**A newer version** is installed the same way, over the old one: `sudo dnf install ./ERDTeX-3.5.1-x86_64.rpm`
+**A newer version** is installed the same way, over the old one: `sudo dnf install ./ERDTeX-4.0.1-x86_64.rpm`
 (or `sudo apt install ./….deb`) replaces it; there is no need to remove it first. dnf and apt only
 replace it with a higher version number; the same version again needs `sudo dnf reinstall ./….rpm`
 (`sudo apt install --reinstall ./….deb`). The settings stay. On Windows, run the newer installer.
